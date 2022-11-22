@@ -1,0 +1,19 @@
+!SESSION 2022-11-22 12:39:28.750 -----------------------------------------------
+eclipse.buildId=Version 1.10.1
+java.version=11.0.14.1
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_US
+Framework arguments:  -keyring /Users/broderio/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/broderio/.eclipse_keyring
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2022-11-22 12:39:53.094
+!MESSAGE Log4j initialized with config file /Users/broderio/Desktop/OneClimate/.metadata/.log4j.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2022-11-22 12:39:57.138
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.core 1 0 2022-11-22 12:42:14.033
+!MESSAGE Indexed 'Controller' (28 sources, 88 headers) in 8.48 sec: 7,351 declarations; 50,071 references; 0 unresolved inclusions; 1 syntax errors; 2 unresolved names (0.0035%)
+
+!ENTRY org.eclipse.cdt.core 1 0 2022-11-22 12:54:15.651
+!MESSAGE Indexed 'Peripheral' (22 sources, 82 headers) in 3.43 sec: 4,715 declarations; 22,504 references; 0 unresolved inclusions; 1 syntax errors; 2 unresolved names (0.0073%)
