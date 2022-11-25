@@ -17,3 +17,32 @@ Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/brode
 
 !ENTRY org.eclipse.cdt.core 1 0 2022-11-22 12:54:15.651
 !MESSAGE Indexed 'Peripheral' (22 sources, 82 headers) in 3.43 sec: 4,715 declarations; 22,504 references; 0 unresolved inclusions; 1 syntax errors; 2 unresolved names (0.0073%)
+!SESSION 2022-11-22 13:00:59.978 -----------------------------------------------
+eclipse.buildId=Version 1.10.1
+java.version=11.0.14.1
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_US
+Framework arguments:  -keyring /Users/broderio/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/broderio/.eclipse_keyring
+
+!ENTRY org.eclipse.core.resources 2 10035 2022-11-22 13:01:32.563
+!MESSAGE The workspace exited with unsaved changes in the previous session; refreshing workspace to recover changes.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2022-11-22 13:01:36.335
+!MESSAGE Log4j initialized with config file /Users/broderio/Desktop/OneClimate/.metadata/.log4j.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2022-11-22 13:02:00.497
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2022-11-25 12:03:00.067 -----------------------------------------------
+eclipse.buildId=Version 1.10.1
+java.version=11.0.14.1
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=x86_64, WS=cocoa, NL=en_US
+Framework arguments:  -keyring /Users/broderio/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch x86_64 -keyring /Users/broderio/.eclipse_keyring
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2022-11-25 12:03:34.198
+!MESSAGE Log4j initialized with config file /Users/broderio/Desktop/OneClimate/.metadata/.log4j.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2022-11-25 12:03:41.532
+!MESSAGE Started RMI Server, listening on port 41337
