@@ -219,7 +219,7 @@ int LCD_pushColors(SPI_HandleTypeDef* spi, uint16_t* colors, uint32_t len) {
 	uint8_t *bytes = (uint8_t*)malloc(2*len);
 	LCD_startWrite();
 	uint16a_to_bytes(&colors[0], &bytes[0], len);
-	result = HAL_SPI_Transmit(spi, &bytes[0], 2*len, 0);
+	result = HAL_SPI_Transmit(spi, &bytes[0], 2, 0);
 	LCD_endWrite();
 	free(bytes);
 	return result == HAL_OK;
@@ -233,7 +233,7 @@ int LCD_writePixel(SPI_HandleTypeDef* spi, int16_t x, int16_t y, uint16_t color)
 }
 
 // Length of colors array must be w * h
-int LCD_writePixels(SPI_HandleTypeDef* spi, uint16_t* colors,
+int LCD_writePixels(SPI_HandleTypeDef* spi, uint8_t* colors,
 					int16_t x, int16_t y, int16_t w, int16_t h)
 {
 	if ((x < 0) ||(x >= HX8357_TFTWIDTH) || (y < 0) || (y >= HX8357_TFTHEIGHT)) return 0;
