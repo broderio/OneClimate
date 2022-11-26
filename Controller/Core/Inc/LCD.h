@@ -99,12 +99,12 @@
 #define MADCTL_MH 0x04  ///< LCD refresh right to left
 
 // Pin definitions
-#define RST_PIN GPIOF
-#define RST_PIN_NUMBER 11
-#define DC_PIN GPIOF
-#define DC_PIN_NUMBER 12
-#define CS_PIN GPIOF
-#define CS_PIN_NUMBER 13
+#define RST_PORT GPIOD
+#define RST_PIN GPIO_PIN_15
+#define DC_PORT GPIOF
+#define DC_PIN GPIO_PIN_12
+#define CS_PORT GPIOF
+#define CS_PIN GPIO_PIN_13
 
 void uint16_to_bytes(uint16_t in, uint8_t *out);
 void uint16a_to_bytes(uint16_t* in, uint8_t *out, uint32_t len);
