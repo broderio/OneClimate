@@ -1,0 +1,14 @@
+../Core/Src/LCD_HXD8357D.c:5:6:uint16_to_bytes	16	static
+../Core/Src/LCD_HXD8357D.c:11:6:int16_to_bytes	16	static
+../Core/Src/LCD_HXD8357D.c:17:6:uint32_to_bytes	16	static
+../Core/Src/LCD_HXD8357D.c:25:6:int32_to_bytes	16	static
+../Core/Src/LCD_HXD8357D.c:87:6:LCD_reset	8	static
+../Core/Src/LCD_HXD8357D.c:97:19:LCD_writeCommand	24	static
+../Core/Src/LCD_HXD8357D.c:106:6:LCD_startWrite	8	static
+../Core/Src/LCD_HXD8357D.c:111:6:LCD_endWrite	8	static
+../Core/Src/LCD_HXD8357D.c:116:5:LCD_begin	24	static
+../Core/Src/LCD_HXD8357D.c:149:5:invertDisplay	24	static
+../Core/Src/LCD_HXD8357D.c:157:5:LCD_setAddrWindow	40	static
+../Core/Src/LCD_HXD8357D.c:192:10:LCD_color565	16	static
+../Core/Src/LCD_HXD8357D.c:196:5:LCD_pushColor	24	static
+../Core/Src/LCD_HXD8357D.c:206:5:LCD_writePixel	32	static

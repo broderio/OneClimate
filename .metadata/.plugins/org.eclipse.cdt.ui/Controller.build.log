@@ -1,0 +1,21 @@
+21:19:16 **** Incremental Build of configuration Debug for project Controller ****
+make -j3 all 
+arm-none-eabi-gcc "../Core/Src/LCD_HXD8357D.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L4R5xx -c -I../Core/Inc -I../Drivers/STM32L4xx_HAL_Driver/Inc -I../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/LCD_HXD8357D.d" -MT"Core/Src/LCD_HXD8357D.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/LCD_HXD8357D.o"
+../Core/Src/LCD_HXD8357D.c: In function 'LCD_begin':
+../Core/Src/LCD_HXD8357D.c:120:18: warning: initialization discards 'const' qualifier from pointer target type [-Wdiscarded-qualifiers]
+  120 |  uint8_t *addr = &init[0];
+      |                  ^
+arm-none-eabi-gcc -o "Controller.elf" @"objects.list"   -mcpu=cortex-m4 -T"/Users/broderio/Desktop/OneClimate/Controller/STM32L4R5ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Controller.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: Controller.elf
+ 
+arm-none-eabi-size   Controller.elf 
+arm-none-eabi-objdump -h -S  Controller.elf  > "Controller.list"
+   text	   data	    bss	    dec	    hex	filename
+  24192	     20	   3428	  27640	   6bf8	Controller.elf
+Finished building: default.size.stdout
+ 
+Finished building: Controller.list
+ 
+
+21:19:17 Build Finished. 0 errors, 1 warnings. (took 1s.100ms)
+
