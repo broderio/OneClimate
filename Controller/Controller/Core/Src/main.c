@@ -121,9 +121,9 @@ int main(void)
 	  if(pin_state){
 		  uint8_t data[] = "M";
 //		  uint8_t received_data[sizeof(data)];
-		  HAL_UART_Transmit(&huart4, data, sizeof(data), 10);
+		  HAL_StatusTypeDef transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 10);
 //		  HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 10);
-		  HAL_Delay(1000);
+		  HAL_Delay(10);
 	  }
 
   }
