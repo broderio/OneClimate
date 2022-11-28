@@ -42,6 +42,7 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+uint8_t received_data[2];
 
 /* USER CODE END PV */
 
@@ -88,6 +89,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  HAL_UART_Receive_IT(&huart2, received_data, sizeof(received_data));
 
   /* USER CODE END 2 */
 
@@ -97,20 +99,22 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
-		if (pin_state == GPIO_PIN_SET) {
-			pin_state = GPIO_PIN_RESET;
-		} else {
-			pin_state = GPIO_PIN_SET;
-		}
+//		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
+//		if (pin_state == GPIO_PIN_SET) {
+//			pin_state = GPIO_PIN_RESET;
+//		} else {
+//			pin_state = GPIO_PIN_SET;
+//		}
+//
+//
+//		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, pin_state);
 
 //		uint8_t data[] = "M";
-		uint8_t received_data[2];
 
 //		if(pin_state){
 //			HAL_UART_Transmit(&huart2, data, sizeof(data), 10);
 //		}
-		HAL_StatusTypeDef receive_status = HAL_UART_Receive(&huart2, received_data, sizeof(received_data), 10);
+//		HAL_StatusTypeDef receive_status = HAL_UART_Receive(&huart2, received_data, sizeof(received_data), 10);
 
 		if(received_data[0] == 0x4D){
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
@@ -233,6 +237,11 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    HAL_UART_Transmit(&huart2, received_data, sizeof(received_data), 100);
+    HAL_UART_Receive_IT(&huart2, received_data, sizeof(received_data));
+}
 
 /* USER CODE END 4 */
 
