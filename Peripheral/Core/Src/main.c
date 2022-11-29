@@ -39,17 +39,15 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-uint8_t received_data[2];
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_USART2_UART_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -87,10 +85,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART2_UART_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Receive_IT(&huart2, received_data, sizeof(received_data));
-
+  uint8_t data[] = "Matthew";
+  uint8_t received_data[sizeof(data)];
+  HAL_StatusTypeDef transmit_status;
+  HAL_StatusTypeDef receive_status;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -99,24 +99,25 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
-//		if (pin_state == GPIO_PIN_SET) {
-//			pin_state = GPIO_PIN_RESET;
-//		} else {
-//			pin_state = GPIO_PIN_SET;
-//		}
+		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
+		if (pin_state == GPIO_PIN_SET) {
+			pin_state = GPIO_PIN_RESET;
+		} else {
+			pin_state = GPIO_PIN_SET;
+		}
 //
 //
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, pin_state);
 
 //		uint8_t data[] = "M";
 
-//		if(pin_state){
-//			HAL_UART_Transmit(&huart2, data, sizeof(data), 10);
-//		}
-//		HAL_StatusTypeDef receive_status = HAL_UART_Receive(&huart2, received_data, sizeof(received_data), 10);
+		if(pin_state){
+			transmit_status = HAL_UART_Transmit(&huart1, data, sizeof(data), 1000);
+			receive_status = HAL_UART_Receive(&huart1, received_data, sizeof(received_data), 1000);
+		}
 
-		if(received_data[0] == 0x4D){
+
+		if(strncmp((const char*)data, received_data, sizeof(data)) == 0){
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
 		}
 		HAL_Delay(10);
@@ -171,35 +172,35 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief USART2 Initialization Function
+  * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USART2_UART_Init(void)
+static void MX_USART1_UART_Init(void)
 {
 
-  /* USER CODE BEGIN USART2_Init 0 */
+  /* USER CODE BEGIN USART1_Init 0 */
 
-  /* USER CODE END USART2_Init 0 */
+  /* USER CODE END USART1_Init 0 */
 
-  /* USER CODE BEGIN USART2_Init 1 */
+  /* USER CODE BEGIN USART1_Init 1 */
 
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART2_Init 2 */
+  /* USER CODE BEGIN USART1_Init 2 */
 
-  /* USER CODE END USART2_Init 2 */
+  /* USER CODE END USART1_Init 2 */
 
 }
 
@@ -237,12 +238,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    HAL_UART_Transmit(&huart2, received_data, sizeof(received_data), 100);
-    HAL_UART_Receive_IT(&huart2, received_data, sizeof(received_data));
-}
-
 /* USER CODE END 4 */
 
 /**
