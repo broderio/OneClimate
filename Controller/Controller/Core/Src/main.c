@@ -104,7 +104,9 @@ int main(void)
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
   uint8_t data[] = "Matthew";
-  uint8_t received_data[sizeof(data)];
+//  uint8_t received_data[sizeof(data)];
+  uint8_t received_data[] = "wehttaM";
+
   HAL_StatusTypeDef transmit_status;
   HAL_StatusTypeDef receive_status;
 
@@ -121,13 +123,13 @@ int main(void)
 //	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
 	  if(pin_state){
 		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
-//		  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
+		  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
 	  }
-	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
+//	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
 
-//	  if(strncmp((const char*)data, received_data, sizeof(data)) == 0){
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
-//	  }
+	  if(strncmp((const char*)data, received_data, sizeof(data)) == 0){
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
+	  }
 
 //	  if(received_data[0] == 0x4D){
 //		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
