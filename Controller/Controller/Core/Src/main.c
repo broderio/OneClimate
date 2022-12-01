@@ -105,7 +105,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   uint8_t data[] = "Matthew";
 //  uint8_t received_data[sizeof(data)];
-  uint8_t received_data[] = "wehttaM";
+  uint8_t received_data[] = "Patrick";
 
   HAL_StatusTypeDef transmit_status;
   HAL_StatusTypeDef receive_status;
@@ -124,6 +124,8 @@ int main(void)
 	  if(pin_state){
 		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
 		  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
+	  } else {
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
 	  }
 //	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
 
@@ -334,7 +336,7 @@ static void MX_UART4_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_UARTEx_DisableFifoMode(&huart4) != HAL_OK)
+  if (HAL_UARTEx_EnableFifoMode(&huart4) != HAL_OK)
   {
     Error_Handler();
   }

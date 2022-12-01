@@ -41,7 +41,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
-UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
@@ -50,7 +49,6 @@ UART_HandleTypeDef huart6;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -89,10 +87,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
-  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
-  uint8_t data[] = "Matthew";
-  uint8_t received_data[sizeof(data)];
   HAL_StatusTypeDef transmit_status;
   HAL_StatusTypeDef receive_status;
   /* USER CODE END 2 */
@@ -103,12 +98,16 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
-//		if (pin_state == GPIO_PIN_SET) {
-//			pin_state = GPIO_PIN_RESET;
-//		} else {
-//			pin_state = GPIO_PIN_SET;
-//		}
+
+	  uint8_t data[] = "Matthew";
+	  uint8_t received_data[] = "Patrick";
+
+		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
+		if (pin_state == GPIO_PIN_SET) {
+			pin_state = GPIO_PIN_RESET;
+		} else {
+			pin_state = GPIO_PIN_SET;
+		}
 //
 //
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, pin_state);
@@ -116,14 +115,28 @@ int main(void)
 //		uint8_t data[] = "M";
 
 //		if(pin_state){
-			transmit_status = HAL_UART_Transmit(&huart6, data, sizeof(data), 1000);
-			receive_status = HAL_UART_Receive(&huart6, received_data, sizeof(received_data), 1000);
+//			transmit_status = HAL_UART_Transmit(&huart1, data, sizeof(data), 100);
+//			receive_status = HAL_UART_Receive(&huart1, received_data, sizeof(received_data), 100);
+//		} else {
+//			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, pin_state);
 //		}
-//
-//
-//		if(strncmp((const char*)data, received_data, sizeof(data)) == 0){
-//			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-//		}
+
+		if(pin_state){
+			int k = 0;
+			k++;
+			for(int i = sizeof(data) - 1; i >= 0; i--){
+				transmit_status = HAL_UART_Transmit(&huart1, &(data[i]), 1, 100);
+				receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1, 100);
+			}
+
+		} else {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, pin_state);
+		}
+
+
+		if(strncmp((const char*)data, received_data, sizeof(data)) == 0){
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+		}
 
 
 
@@ -219,51 +232,35 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
-  * @brief USART6 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART6_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART6_Init 0 */
-
-  /* USER CODE END USART6_Init 0 */
-
-  /* USER CODE BEGIN USART6_Init 1 */
-
-  /* USER CODE END USART6_Init 1 */
-  huart6.Instance = USART6;
-  huart6.Init.BaudRate = 115200;
-  huart6.Init.WordLength = UART_WORDLENGTH_8B;
-  huart6.Init.StopBits = UART_STOPBITS_1;
-  huart6.Init.Parity = UART_PARITY_NONE;
-  huart6.Init.Mode = UART_MODE_TX_RX;
-  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart6) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART6_Init 2 */
-
-  /* USER CODE END USART6_Init 2 */
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 
