@@ -103,10 +103,6 @@ int main(void)
   MX_SPI1_Init();
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
-  uint8_t data[] = "Matthew";
-//  uint8_t received_data[sizeof(data)];
-  uint8_t received_data[] = "Patrick";
-
   HAL_StatusTypeDef transmit_status;
   HAL_StatusTypeDef receive_status;
 
@@ -119,6 +115,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  uint8_t data[] = "Matthew";
+	//  uint8_t received_data[sizeof(data)];
+	  uint8_t received_data[] = "Patrick";
+
 	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 //	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
 	  if(pin_state){
