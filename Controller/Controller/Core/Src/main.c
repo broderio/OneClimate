@@ -106,6 +106,9 @@ int main(void)
   HAL_StatusTypeDef transmit_status;
   HAL_StatusTypeDef receive_status;
 
+  /* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
+   *							([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) *\
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -118,26 +121,17 @@ int main(void)
 
 	  uint8_t data[] = {0x4D};
 	  uint8_t received_data[sizeof(data)];
-//	  uint8_t received_data[] = "Patrick";
 
 	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
-//	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
-	  if(pin_state){
-//			int k = 0;
-//			k++;
-//			for(int i = sizeof(data) - 1; i >= 0; i--){
-		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
-//				receive_status = HAL_UART_Receive(&huart4, &(received_data[i]), 1, 100);
-//			}
 
-//		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
-//		  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
+	  if(pin_state){
+		  for(int i = sizeof(data) - 1; i >= 0; i--){
+			  transmit_status = HAL_UART_Transmit(&huart1, data, sizeof(data),100);
+			  receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1, 100);
+		  }
+		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
 	  }
 	  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
-//	  } else {
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
-//	  }
-//	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
 
 	  if(received_data[0] == 0x41){
 		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
@@ -167,9 +161,7 @@ int main(void)
 		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
 	  }
 
-//	  if(received_data[0] == 0x4D){
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
-//	  }
+
 	  HAL_Delay(10);
 
   }
