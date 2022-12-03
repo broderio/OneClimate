@@ -31,7 +31,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define my_id 1
+uint8_t my_id = 2;
+uint8_t my_data = 0x42;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -40,6 +41,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim4;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
@@ -49,6 +52,7 @@ UART_HandleTypeDef huart1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -87,6 +91,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
   HAL_StatusTypeDef transmit_status;
   HAL_StatusTypeDef receive_status;
@@ -99,8 +104,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  uint8_t data[] = "Matthew";
-	  uint8_t received_data[] = "Patrick";
+	  uint8_t data[] = {my_data};
+	  uint8_t received_data[sizeof(data)];
 
 		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 		if (pin_state == GPIO_PIN_SET) {
@@ -122,20 +127,25 @@ int main(void)
 //		}
 
 		if(pin_state){
-			int k = 0;
-			k++;
-			for(int i = sizeof(data) - 1; i >= 0; i--){
-				transmit_status = HAL_UART_Transmit(&huart1, &(data[i]), 1, 100);
-				receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1, 100);
-			}
-
-		} else {
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, pin_state);
+//			int k = 0;
+//			k++;
+//			for(int i = sizeof(data) - 1; i >= 0; i--){
+				transmit_status = HAL_UART_Transmit(&huart1, data, sizeof(data), 100);
+//				receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1, 100);
+//			}
 		}
 
+//		} else {
+//			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, pin_state);
+//		}
 
-		if(strncmp((const char*)data, received_data, sizeof(data)) == 0){
+		receive_status = HAL_UART_Receive(&huart1, received_data, sizeof(received_data), 100);
+
+
+		if(received_data[0] == 0x4D){
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+		} else {
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
 		}
 
 
@@ -196,6 +206,55 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 83;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 19999;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 2400;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim4, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+  HAL_TIM_MspPostInit(&htim4);
+
 }
 
 /**

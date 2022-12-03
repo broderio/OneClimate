@@ -116,22 +116,55 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  uint8_t data[] = "Matthew";
-	//  uint8_t received_data[sizeof(data)];
-	  uint8_t received_data[] = "Patrick";
+	  uint8_t data[] = {0x4D};
+	  uint8_t received_data[sizeof(data)];
+//	  uint8_t received_data[] = "Patrick";
 
 	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 //	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
 	  if(pin_state){
+//			int k = 0;
+//			k++;
+//			for(int i = sizeof(data) - 1; i >= 0; i--){
 		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
-		  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
-	  } else {
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
+//				receive_status = HAL_UART_Receive(&huart4, &(received_data[i]), 1, 100);
+//			}
+
+//		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
+//		  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
 	  }
+	  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
+//	  } else {
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
+//	  }
 //	  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
 
-	  if(strncmp((const char*)data, received_data, sizeof(data)) == 0){
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  pin_state);
+	  if(received_data[0] == 0x41){
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+		  HAL_Delay(1000);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+	  } else if(received_data[0] == 0x42){
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+		  HAL_Delay(1000);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+		  HAL_Delay(1000);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+		  HAL_Delay(1000);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+	  } else if(received_data[0] == 0x43){
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+		  HAL_Delay(1000);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+		  HAL_Delay(1000);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+		  HAL_Delay(1000);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+		  HAL_Delay(1000);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+		  HAL_Delay(1000);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+	  } else {
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
 	  }
 
 //	  if(received_data[0] == 0x4D){
