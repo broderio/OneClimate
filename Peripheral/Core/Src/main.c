@@ -59,6 +59,23 @@ static void MX_TIM4_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#define TIM4_ADDR 0x40000800//timer 4 base register
+#define TIM_CCR2_OFFSET 0x38//capture/compare register 2
+#define CCR_MASK 0xFFFF
+#define PWM0 1500
+#define PWM90 2400
+
+void close_vent(){
+	uint32_t * tim4_ccr2 = (uint32_t *)(TIM4_ADDR + TIM_CCR2_OFFSET);
+	*tim4_ccr2 &= ~CCR_MASK;
+	*tim4_ccr2 |= PWM0;
+};
+
+void open_vent(){
+	uint32_t * tim4_ccr2 = (uint32_t *)(TIM4_ADDR + TIM_CCR2_OFFSET);
+	*tim4_ccr2 &= ~CCR_MASK;
+	*tim4_ccr2 |= PWM90;
+};
 
 /* USER CODE END 0 */
 
@@ -95,6 +112,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   HAL_StatusTypeDef transmit_status;
   HAL_StatusTypeDef receive_status;
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -144,6 +162,10 @@ int main(void)
 
 		if(received_data[0] == 0x4D){
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+			open_vent();
+			HAL_Delay(2000);
+			close_vent();
+			HAL_Delay(2000);
 		} else {
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
 		}
