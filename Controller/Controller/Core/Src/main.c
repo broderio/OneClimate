@@ -134,7 +134,7 @@ int main(void)
 	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 
 	  if(pin_state){
-		  for(int i = sizeof(data) - 1; i >= 0; i--){
+		  for(int i = 0; i < sizeof(data); i++){
 			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
 		  }
 //		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
@@ -146,7 +146,7 @@ int main(void)
 //	  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
 
 
-	  if(received_data[0] == 31){
+	  if(received_data[0] == 31 && receive_status == HAL_OK){
 		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
 		  HAL_Delay(1000);
 		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);

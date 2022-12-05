@@ -65,14 +65,14 @@ static void MX_TIM4_Init(void);
 #define PWM0 1500
 #define PWM90 2400
 
-void close_vent() {
+void open_vent() {
 	uint32_t *tim4_ccr2 = (uint32_t*) (TIM4_ADDR + TIM_CCR2_OFFSET);
 	*tim4_ccr2 &= ~CCR_MASK;
 	*tim4_ccr2 |= PWM0;
 }
 ;
 
-void open_vent() {
+void close_vent() {
 	uint32_t *tim4_ccr2 = (uint32_t*) (TIM4_ADDR + TIM_CCR2_OFFSET);
 	*tim4_ccr2 &= ~CCR_MASK;
 	*tim4_ccr2 |= PWM90;
@@ -152,7 +152,7 @@ int main(void) {
 		}
 
 		if (pin_state) {
-			for(int i = sizeof(data) - 1; i >= 0; i--){
+			for(int i = 0; i < sizeof(data); i++){
 			   transmit_status = HAL_UART_Transmit(&huart1, &(data[i]), 1, 1000);
 		    }
 //			transmit_status = HAL_UART_Transmit(&huart1, data, sizeof(data), 100);
@@ -161,7 +161,7 @@ int main(void) {
 //		receive_status = HAL_UART_Receive(&huart1, received_data, sizeof(received_data), 100);
 
 
-		if (received_data[0] == 0 && received_data[1] == 253) {
+		if (received_data[1] == 0 && received_data[0] == 253 && receive_status == HAL_OK) {
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
 			open_vent();
 			HAL_Delay(1000);
