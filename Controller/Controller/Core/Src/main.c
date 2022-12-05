@@ -128,20 +128,20 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  uint8_t data[data_size] = {send_desired_state, furnace_status_on|(31 << 5)|vent_id_1};
+	  uint8_t data[] = {send_desired_state, (uint8_t)(furnace_status_on|(31 << 2)|vent_id_1)};
 	  uint8_t received_data[received_data_size];
 
 	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 
 	  if(pin_state){
 		  for(int i = sizeof(data) - 1; i >= 0; i--){
-			  transmit_status = HAL_UART_Transmit(&huart1, data, &(data[i]),1000);
+			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
 		  }
 //		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
 	  }
 
 	  for(int i = sizeof(received_data) - 1; i >= 0; i--){
-		  receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1, 1000);
+		  receive_status = HAL_UART_Receive(&huart4, &(received_data[i]), 1, 1000);
 	  }
 //	  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
 

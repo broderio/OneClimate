@@ -137,8 +137,12 @@ int main(void) {
 
 		/* USER CODE BEGIN 3 */
 
-		uint8_t data[data_size] = { 31 };
+		uint8_t data[] = { (uint8_t)(31) };
 		uint8_t received_data[received_data_size];
+
+		for(int i = sizeof(received_data) - 1; i >= 0; i--){
+			receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1, 1000);
+	    }
 
 		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 		if (pin_state == GPIO_PIN_SET) {
@@ -149,28 +153,23 @@ int main(void) {
 
 		if (pin_state) {
 			for(int i = sizeof(data) - 1; i >= 0; i--){
-			   transmit_status = HAL_UART_Transmit(&huart1, data, &(data[i]),1000);
+			   transmit_status = HAL_UART_Transmit(&huart1, &(data[i]), 1, 1000);
 		    }
 //			transmit_status = HAL_UART_Transmit(&huart1, data, sizeof(data), 100);
 		}
 
 //		receive_status = HAL_UART_Receive(&huart1, received_data, sizeof(received_data), 100);
 
-		for(int i = sizeof(received_data) - 1; i >= 0; i--){
-			receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1, 1000);
-	    }
 
-		if (received_data[0] == 0 && received_data[1] == 31) {
+		if (received_data[0] == 0 && received_data[1] == 253) {
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
 			open_vent();
-			HAL_Delay(2000);
+			HAL_Delay(1000);
 			close_vent();
-			HAL_Delay(2000);
+//			HAL_Delay(100);
 		} else {
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
 		}
-
-		HAL_Delay(10);
 	}
 	/* USER CODE END 3 */
 }
