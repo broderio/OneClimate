@@ -116,7 +116,16 @@ int main(void) {
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
 
 	/* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
-	 *							  ([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) *\
+	 *							  ([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) */
+   uint8_t data_size = 1;
+   uint8_t received_data_size = 2;
+   uint8_t send_desired_state = 0;
+   uint8_t receive_current_temp = 1;
+   uint8_t furnace_status_on = 0x80;
+   uint8_t furnace_status_off = 0x00;
+   uint8_t vent_id_1 = 0x01;
+   uint8_t vent_id_2 = 0x02;
+   uint8_t vent_id_3 = 0x03;
 
 
 	/* USER CODE END 2 */
@@ -128,8 +137,8 @@ int main(void) {
 
 		/* USER CODE BEGIN 3 */
 
-		uint8_t data[] = { my_data };
-		uint8_t received_data[sizeof(data)];
+		uint8_t data[data_size] = { 31 };
+		uint8_t received_data[received_data_size];
 
 		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 		if (pin_state == GPIO_PIN_SET) {
@@ -139,12 +148,19 @@ int main(void) {
 		}
 
 		if (pin_state) {
-			transmit_status = HAL_UART_Transmit(&huart1, data, sizeof(data), 100);
+			for(int i = sizeof(data) - 1; i >= 0; i--){
+			   transmit_status = HAL_UART_Transmit(&huart1, data, &(data[i]),1000);
+		    }
+//			transmit_status = HAL_UART_Transmit(&huart1, data, sizeof(data), 100);
 		}
 
-		receive_status = HAL_UART_Receive(&huart1, received_data, sizeof(received_data), 100);
+//		receive_status = HAL_UART_Receive(&huart1, received_data, sizeof(received_data), 100);
 
-		if (received_data[0] == 0x4D) {
+		for(int i = sizeof(received_data) - 1; i >= 0; i--){
+			receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1, 1000);
+	    }
+
+		if (received_data[0] == 0 && received_data[1] == 31) {
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
 			open_vent();
 			HAL_Delay(2000);

@@ -108,7 +108,8 @@ int main(void)
 
   /* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
    *							([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) */
-   uint8_t data_transfer_size = 2;
+   uint8_t data_size = 2;
+   uint8_t received_data_size = 1;
    uint8_t send_desired_state = 0;
    uint8_t receive_current_temp = 1;
    uint8_t furnace_status_on = 0x80;
@@ -127,8 +128,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  uint8_t data[data_transfer_size] = {send_desired_state, furnace_status_on|(31 << 5)|vent_id_1};
-	  uint8_t received_data[sizeof(data)];
+	  uint8_t data[data_size] = {send_desired_state, furnace_status_on|(31 << 5)|vent_id_1};
+	  uint8_t received_data[received_data_size];
 
 	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 
@@ -144,33 +145,42 @@ int main(void)
 	  }
 //	  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
 
-	  if(received_data[0] == 0x41){
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-		  HAL_Delay(1000);
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-	  } else if(received_data[0] == 0x42){
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-		  HAL_Delay(1000);
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-		  HAL_Delay(1000);
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-		  HAL_Delay(1000);
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-	  } else if(received_data[0] == 0x43){
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-		  HAL_Delay(1000);
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-		  HAL_Delay(1000);
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-		  HAL_Delay(1000);
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-		  HAL_Delay(1000);
+
+	  if(received_data[0] == 31){
 		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
 		  HAL_Delay(1000);
 		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
 	  } else {
 		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
 	  }
+
+//	  if(received_data[0] == 0x41){
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+//	  } else if(received_data[0] == 0x42){
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+//	  } else if(received_data[0] == 0x43){
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+//	  } else {
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+//	  }
 
 
 	  HAL_Delay(10);
