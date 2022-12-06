@@ -70,8 +70,8 @@ static void MX_TIM3_Init(void);
 #define PWM0 1500
 #define PWM90 2400
 
-float Curr_temp = 65;
-float Set_temp = 65;
+uint8_t Curr_temp = 65;
+uint8_t Set_temp = 65;
 int Heat_on = 1;
 
 void open_vent() {
@@ -96,7 +96,7 @@ void get_temp() {
 	ADC_VAL = HAL_ADC_GetValue(&hadc1); //retrieve value
 	float ADC_to_V = ADC_VAL * Vref / 4096; //converts ADC output to volts
 	float tempC = (ADC_to_V - 0.5) * (1 / .01); // converts temp sensor voltage to degrees Celsius
-	Curr_temp = (tempC * 9 / 5) + 32;  // converts to F
+	Curr_temp = (uint8_t)((tempC * 9.0f / 5.0f) + 32.0f);  // converts to F
 }
 
 /* USER CODE END 0 */
@@ -162,25 +162,46 @@ int main(void) {
 //		air on + goal < than current => close vent
 //		float test = Curr_temp;
 //		get_temp();
+		uint8_t data[] = { Curr_temp };
+		uint8_t received_data[1];
 
-		uint8_t data[] = { (uint8_t) (Curr_temp) };
-		uint8_t received_data[received_data_size];
+		receive_status = HAL_UART_Receive(&huart1, received_data, 1, 100);
+		if((received_data[0] & 0x0F) != my_id) continue;
 
-		for (int i = sizeof(received_data) - 1; i >= 0; i--) {
-			receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1,
-					1000);
-		}
+		transmit_status = HAL_UART_Transmit(&huart1, &Curr_temp, 1, 100);
 
-		if((((received_data[0] & receive_current_temp) >> 7) == 1) && ((received_data[0] & 0x03) == my_id)){
-			data[0] = (uint8_t)Curr_temp;
-			transmit_status = HAL_UART_Transmit(&huart1, &(data[0]), 1, 1000);
-		} else if((((received_data[0] & send_desired_state) >> 7) == 0) && ((received_data[0] & 0x03) == my_id)){
-			Heat_on = (received_data[0] & 0x80) >> 7;
-			Set_temp = ((received_data[0] & 124) >> 2) + 55;
-			uint8_t temp = Set_temp;
-			int k = 0;
-			k++;
-		}
+		Set_temp = received_data[0] >> 4;
+
+		receive_status = HAL_UART_Receive(&huart1, received_data, 1, 100);
+		if(received_data[0] & 0x0F != my_id) continue;
+
+		transmit_status = HAL_UART_Transmit(&huart1, data, 1, 100);
+
+		Set_temp = Set_temp | (received_data[0] & 0xF0);
+
+		receive_status = HAL_UART_Receive(&huart1, received_data, 1, 100);
+		if(received_data[0] & 0x0F != my_id) continue;
+
+		transmit_status = HAL_UART_Transmit(&huart1, data, 1, 100);
+
+		Heat_on = received_data[0] >> 4;
+
+
+//		for (int i = sizeof(received_data) - 1; i >= 0; i--) {
+//			receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1,
+//					1000);
+//		}
+//
+//		if((((received_data[0] & receive_current_temp) >> 7) == 1) && ((received_data[0] & 0x03) == my_id)){
+//			data[0] = (uint8_t)Curr_temp;
+//			transmit_status = HAL_UART_Transmit(&huart1, &(data[0]), 1, 1000);
+//		} else if((((received_data[0] & send_desired_state) >> 7) == 0) && ((received_data[0] & 0x03) == my_id)){
+//			Heat_on = (received_data[0] & 0x80) >> 7;
+//			Set_temp = ((received_data[0] & 124) >> 2) + 55;
+//			uint8_t temp = Set_temp;
+//			int k = 0;
+//			k++;
+//		}
 
 //		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 //		if (pin_state == GPIO_PIN_SET) {

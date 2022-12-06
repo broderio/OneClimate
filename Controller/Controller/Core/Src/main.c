@@ -64,9 +64,9 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 unsigned char goalTemp[3][2];
 unsigned char currTemp[3][2];
 struct room {
-	int goalTemp;
-	int currTemp;
-	int ID;
+	uint8_t goalTemp;
+	uint8_t currTemp;
+	uint8_t ID;
 }typedef room_t;
 
 void initRoom(room_t *room, int ID, int goalTemp, int currTemp) {
@@ -194,21 +194,36 @@ HAL_StatusTypeDef transmit_updated_state(uint8_t data) {
 	return transmit_status;
 }
 
-HAL_StatusTypeDef receive_acknowledge(uint8_t* received_data) {
-	HAL_StatusTypeDef receive_status = HAL_UART_Receive(&huart4, received_data, 1, 100);
+HAL_StatusTypeDef receive_acknowledge(uint8_t *received_data) {
+	HAL_StatusTypeDef receive_status = HAL_UART_Receive(&huart4, received_data,
+			1, 100);
 	return receive_status;
 }
 
-HAL_StatusTypeDef transmit_updated_state(room_t *rooms, int furnace_status) {
-	HAL_StatusTypeDef transmit_status;
-	uint8_t data[] = { send_desired_state, (uint8_t) ((furnace_status << 7)
-			| ((rooms->goalTemp - 55) << 2) | rooms->ID) };
-	for (int j = 0; j < sizeof(data); j++) {
-		transmit_status = HAL_UART_Transmit(&huart4, &(data[j]), 1, 1000);
+void transmit_room_info(uint8_t *received_data, uint8_t room_index) {
+	while (receive_acknowledge(received_data) != HAL_OK) {
+		uint8_t lower_temp = ((rooms[room_index].goalTemp & 0x0F) << 4) | rooms[room_index].ID;
+		transmit_updated_state(lower_temp);
 	}
-	HAL_Delay(1000);
-	return transmit_status;
+	while (receive_acknowledge(received_data) != HAL_OK) {
+		uint8_t upper_temp = (rooms[room_index].goalTemp & 0xF0) | rooms[room_index].ID;
+		transmit_updated_state(upper_temp);
+	}
+	while (receive_acknowledge(received_data) != HAL_OK) {
+		transmit_updated_state((furnaceState << 5) | rooms[room_index].ID);
+	}
 }
+
+//HAL_StatusTypeDef transmit_updated_state(room_t *rooms, int furnace_status) {
+//	HAL_StatusTypeDef transmit_status;
+//	uint8_t data[] = { send_desired_state, (uint8_t) ((furnace_status << 7)
+//			| ((rooms->goalTemp - 55) << 2) | rooms->ID) };
+//	for (int j = 0; j < sizeof(data); j++) {
+//		transmit_status = HAL_UART_Transmit(&huart4, &(data[j]), 1, 1000);
+//	}
+//	HAL_Delay(1000);
+//	return transmit_status;
+//}
 
 /* USER CODE END 0 */
 
@@ -307,66 +322,36 @@ int main(void) {
 				rooms[i].goalTemp =
 						(rooms[i].goalTemp < 99) ? rooms[i].goalTemp : 99;
 				rooms[i].goalTemp =
-						(rooms[i].goalTemp > -9) ? rooms[i].goalTemp : -9;
+						(rooms[i].goalTemp > 0) ? rooms[i].goalTemp : 0;
 				rooms[i].currTemp =
 						(rooms[i].currTemp < 99) ? rooms[i].currTemp : 99;
 				rooms[i].currTemp =
-						(rooms[i].currTemp > -9) ? rooms[i].currTemp : -9;
+						(rooms[i].currTemp > 0) ? rooms[i].currTemp : 0;
 			}
 
 			if (newGoal1) {
 				interrupts_disabled = 1;
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(rooms[0].ID);
-				}
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(rooms[0].goalTemp);
-				}
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(furnaceState);
-				}
+				transmit_room_info(received_data, 0);
 				interrupts_disabled = 0;
 				updateDisplayTemp(&hspi1, &rooms[0]);
 			}
 			if (newGoal2) {
 				interrupts_disabled = 1;
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(rooms[1].ID);
-				}
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(rooms[1].goalTemp);
-				}
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(furnaceState);
-				}
+				transmit_room_info(received_data, 1);
 				interrupts_disabled = 0;
 				updateDisplayTemp(&hspi1, &rooms[1]);
 			}
 			if (newGoal3) {
 				interrupts_disabled = 1;
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(rooms[2].ID);
-				}
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(rooms[2].goalTemp);
-				}
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(furnaceState);
-				}
+				transmit_room_info(received_data, 2);
 				interrupts_disabled = 0;
 				updateDisplayTemp(&hspi1, &rooms[2]);
 			}
 			if (newFurnace) {
 				interrupts_disabled = 1;
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(rooms[0].ID);
-				}
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(rooms[2].goalTemp);
-				}
-				while (receive_acknowledge(received_data) != HAL_OK) {
-					transmit_updated_state(furnaceState);
-				}
+				transmit_room_info(received_data, 0);
+				transmit_room_info(received_data, 1);
+				transmit_room_info(received_data, 2);
 				interrupts_disabled = 0;
 				updateDisplayFurnace(&hspi1, furnaceState);
 			}
@@ -822,18 +807,26 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (!interrupts_disabled) {
 		if (htim == &htim3) {
 			uint8_t received_data[1];
-			while (receive_acknowledge(received_data) != HAL_OK) {
-				transmit_updated_state(1);
-			}
+
+			transmit_room_info(received_data, 0);
 			rooms[0].currTemp = received_data[0];
-			while (receive_acknowledge(received_data) != HAL_OK) {
-				transmit_updated_state(2);
-			}
+			transmit_room_info(received_data, 1);
 			rooms[1].currTemp = received_data[0];
-			while (receive_acknowledge(received_data) != HAL_OK) {
-				transmit_updated_state(3);
-			}
+			transmit_room_info(received_data, 2);
 			rooms[2].currTemp = received_data[0];
+
+//			while (receive_acknowledge(received_data) != HAL_OK) {
+//				transmit_updated_state(1);
+//			}
+//			rooms[0].currTemp = received_data[0];
+//			while (receive_acknowledge(received_data) != HAL_OK) {
+//				transmit_updated_state(2);
+//			}
+//			rooms[1].currTemp = received_data[0];
+//			while (receive_acknowledge(received_data) != HAL_OK) {
+//				transmit_updated_state(3);
+//			}
+//			rooms[2].currTemp = received_data[0];
 		}
 	}
 }
