@@ -35,12 +35,25 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define COL_1			40
-#define COL_2 		155
-#define COL_3  	 	268
+#define COL_2 			155
+#define COL_3  	 		268
 #define ROW_1			204
 #define ROW_2			350
 #define ROW_3			454
 #define ERROR			25
+
+/* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
+ *							([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) */
+#define DATA_SIZE 				2
+#define RECEIVED_DATA_SIZE		1
+#define SEND_DESIRED_STATE		0x00
+#define RECEIVE_CURRENT_TEMP	0x80
+#define FURNACE_ON				0x80
+#define FURNACE_OFF				0x00
+#define VENT_ID_1				0x01
+#define VENT_ID_2				0x02
+#define VENT_ID_3				0x03
+#define NUM_ROOMS				3
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -50,92 +63,93 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
-
 UART_HandleTypeDef hlpuart1;
 UART_HandleTypeDef huart4;
-
 SPI_HandleTypeDef hspi1;
-
 TIM_HandleTypeDef htim3;
-
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
-unsigned char goalTemp[3][2];
-unsigned char currTemp[3][2];
-struct room {
-	uint8_t goalTemp;
-	uint8_t currTemp;
-	uint8_t ID;
-}typedef room_t;
 
-void initRoom(room_t *room, int ID, int goalTemp, int currTemp) {
-	room->ID = ID;
-	room->goalTemp = goalTemp;
-	room->currTemp = currTemp;
+struct currRoomStatetate {
+	uint8_t goal;
+	uint8_t temp;
+	uint8_t id;
+}typedef roomState_t;
+
+uint8_t furnaceState = 0;
+roomState_t prevRoomState[NUM_ROOMS];
+roomState_t currRoomState[NUM_ROOMS];
+
+void initRoom(roomState_t *room, int id, int goal, int temp) {
+	room->id = id;
+	room->goal = goal;
+	room->temp = temp;
 }
 
-void initDisplay(SPI_HandleTypeDef *spi, room_t *rooms, int count) {
-	LCD_writePixels(&hspi1, LCD_color565(255, 255, 255), 0, 0, LCD_WIDTH,
-	LCD_HEIGHT);
-	for (int i = 0; i < count; ++i) {
-		itoa(rooms[i].goalTemp, &goalTemp[i][0], 10);
-		itoa(rooms[i].currTemp, &currTemp[i][0], 10);
-
+void initDisplay(SPI_HandleTypeDef *spi) {
+	LCD_writePixels(&hspi1, LCD_color565(255, 255, 255), 0, 0, LCD_WIDTH, LCD_HEIGHT);
+	for (int i = 0; i < NUM_ROOMS; ++i) {
+		unsigned char buf[2];
 		int size = 8;
-		int start = (LCD_WIDTH / 3) * (rooms[i].ID - 1) + size + 5;
+		int start = (LCD_WIDTH / 3) * (currRoomState[i].id - 1) + size + 5;
 
-		LCD_drawStringNoBG(spi, start, size, &currTemp[i][0], 2,
-				LCD_color565(0, 0, 0), size);
-		LCD_drawStringNoBG(spi, start, 9 * size, &goalTemp[i][0], 2,
-				LCD_color565(75, 75, 75), size);
+		itoa(currRoomState[i].goal, &buf[0], 10);
+		LCD_drawStringNoBG(spi, start, size, &buf[0], 2, LCD_color565(0, 0, 0), size);
 
-		LCD_drawButtonNoBG(&hspi1, start, 18 * size, 0, LCD_color565(255, 0, 0),
-				size * 2 + 1);
-		LCD_drawButtonNoBG(&hspi1, start, 34 * size, 1, LCD_color565(0, 0, 255),
-				size * 2 + 1);
+		itoa(currRoomState[i].temp, &buf[0], 10);
+		LCD_drawStringNoBG(spi, start, 9 * size, &buf[0], 2, LCD_color565(75, 75, 75), size);
+
+		LCD_drawButtonNoBG(&hspi1, start, 18 * size, 0, LCD_color565(255, 0, 0), size * 2 + 1);
+		LCD_drawButtonNoBG(&hspi1, start, 34 * size, 1, LCD_color565(0, 0, 255), size * 2 + 1);
 	}
 	unsigned char heat[4] = "HEAT";
 	unsigned char air[3] = "AIR";
-	LCD_writePixels(&hspi1, LCD_color565(0, 0, 0), 6, LCD_HEIGHT - 8 * 6 - 4,
-			23 * 6, 2);
-	LCD_drawStringNoBG(spi, 6, LCD_HEIGHT - 8 * 6, &heat[0], 4,
-			LCD_color565(0, 0, 0), 6);
-	LCD_drawStringNoBG(spi, LCD_WIDTH - 18 * 6, LCD_HEIGHT - 8 * 6, &air[0], 3,
-			LCD_color565(0, 0, 0), 6);
+	LCD_writePixels(&hspi1, LCD_color565(0, 0, 0), 6, LCD_HEIGHT - 8 * 6 - 4, 23 * 6, 2);
+	LCD_drawStringNoBG(spi, 6, LCD_HEIGHT - 8 * 6, &heat[0], 4, LCD_color565(0, 0, 0), 6);
+	LCD_drawStringNoBG(spi, LCD_WIDTH - 18 * 6, LCD_HEIGHT - 8 * 6, &air[0], 3, LCD_color565(0, 0, 0), 6);
 }
 
-void updateDisplayTemp(SPI_HandleTypeDef *spi, room_t *room) {
-	unsigned char buf[2];
+void updateDisplayTemp(SPI_HandleTypeDef *spi, int roomIdx) {
+	unsigned char buf1[2];
+	unsigned char buf2[2];
 	int size = 8;
-	int start = (LCD_WIDTH / 3) * (room->ID - 1) + size + 5;
+	int start = (LCD_WIDTH / 3) * (currRoomState[roomIdx].id - 1) + size + 5;
+	uint8_t currTemp = currRoomState[roomIdx].temp;
+	uint8_t prevTemp = prevRoomState[roomIdx].temp;
+	uint8_t currGoal = currRoomState[roomIdx].goal;
+	uint8_t prevGoal = prevRoomState[roomIdx].goal;
 
-	itoa(room->currTemp, &buf[0], 10);
-	if (buf[0] != currTemp[room->ID - 1][0]) {
-		LCD_drawStringOPT(spi, start, size, &buf[0], &currTemp[room->ID - 1][0],
-				2, LCD_color565(0, 0, 0), size);
-		currTemp[room->ID - 1][0] = buf[0];
-		currTemp[room->ID - 1][1] = buf[1];
-	} else if (buf[1] != currTemp[room->ID - 1][1]) {
-		LCD_drawCharOPT(spi, start + 6 * size, size, buf[1],
-				currTemp[room->ID - 1][1], LCD_color565(0, 0, 0), size);
-		currTemp[room->ID - 1][1] = buf[1];
+	// convert temperatures to strings
+	itoa(currTemp, &buf1[0], 10);
+	itoa(prevTemp, &buf2[0], 10);
+
+	// If the first digit is different, update the entire string
+	if (buf1[0] != buf2[0]) {
+		LCD_drawStringOPT(spi, start, size, &buf1[0], &buf2[0], 2, LCD_color565(0, 0, 0), size);
+	}
+	// otherwise, only update the least significant digit
+	else if (buf1[1] != buf2[1]) {
+		LCD_drawCharOPT(spi, start + 6 * size, size, buf1[1], buf2[1], LCD_color565(0, 0, 0), size);
 	}
 
-	itoa(room->goalTemp, &buf[0], 10);
-	if (buf[0] != goalTemp[room->ID - 1][0]) {
-		LCD_drawStringOPT(spi, start, 9 * size, &buf[0],
-				&goalTemp[room->ID - 1][0], 2, LCD_color565(75, 75, 75), size);
-		goalTemp[room->ID - 1][0] = buf[0];
-		goalTemp[room->ID - 1][1] = buf[1];
-	} else if (buf[1] != goalTemp[room->ID - 1][1]) {
-		LCD_drawCharOPT(spi, start + 6 * size, 9 * size, buf[1],
-				goalTemp[room->ID - 1][1], LCD_color565(75, 75, 75), size);
-		goalTemp[room->ID - 1][1] = buf[1];
+	// convert goals to strings
+	itoa(currGoal, &buf1[0], 10);
+	itoa(prevGoal, &buf2[0], 10);
+
+	// If the first digit is different, update the entire string
+	if (buf1[0] != buf2[0]) {
+		LCD_drawStringOPT(spi, start, 9 * size, &buf1[0], &buf2[0], 2, LCD_color565(75, 75, 75), size);
 	}
+	// otherwise, only update the least significant digit
+	else if (buf1[1] != buf2[1]) {
+		LCD_drawCharOPT(spi, start + 6 * size, 9 * size, buf1[1], buf2[1], LCD_color565(75, 75, 75), size);
+	}
+
+	prevRoomState[roomIdx] = currRoomState[roomIdx];
 }
 
-void updateDisplayFurnace(SPI_HandleTypeDef *spi, int furnaceState) {
+void updateDisplayFurnace(SPI_HandleTypeDef *spi) {
 	int size = 6;
 	if (furnaceState) {
 		LCD_writePixels(spi, LCD_color565(255, 255, 255), size,
@@ -149,6 +163,32 @@ void updateDisplayFurnace(SPI_HandleTypeDef *spi, int furnaceState) {
 		LCD_HEIGHT - 8 * 6 - 4, 17 * size, 2);
 	}
 }
+
+HAL_StatusTypeDef transmit_updated_state(uint8_t *data) {
+	HAL_StatusTypeDef res = HAL_UART_Transmit(&huart4, data, 1, 100);
+	return res;
+}
+
+HAL_StatusTypeDef receive_acknowledge(uint8_t *received_data) {
+	HAL_StatusTypeDef res = HAL_UART_Receive(&huart4, received_data, 1, 100);
+	return res;
+}
+
+void transmit_room_info(uint8_t *received_data, uint8_t roomIdx) {
+	while (receive_acknowledge(received_data) != HAL_OK) {
+		uint8_t lower_temp = ((currRoomState[roomIdx].goal & 0x0F) << 4) | currRoomState[roomIdx].id;
+		transmit_updated_state(&lower_temp);
+	}
+	while (receive_acknowledge(received_data) != HAL_OK) {
+		uint8_t upper_temp = (currRoomState[roomIdx].goal & 0xF0) | currRoomState[roomIdx].id;
+		transmit_updated_state(&upper_temp);
+	}
+	while (receive_acknowledge(received_data) != HAL_OK) {
+		uint8_t furnace = (furnaceState << 5) | currRoomState[roomIdx].id;
+		transmit_updated_state(&furnace);
+	}
+}
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -166,65 +206,6 @@ static void MX_TIM3_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t curr_temp[] = { 0, 0, 0, 0 };
-uint8_t desired_temp[] = { 0, 11, 11, 0 };
-
-HAL_StatusTypeDef transmit_status;
-HAL_StatusTypeDef receive_status;
-
-int interrupts_disabled = 0;
-int furnaceState = 0;
-room_t rooms[3];
-
-/* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
- *							([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) */
-uint8_t data_size = 2;
-uint8_t received_data_size = 1;
-uint8_t send_desired_state = 0x00;
-uint8_t receive_current_temp = 0x80;
-uint8_t furnace_status_on = 0x80;
-uint8_t furnace_status_off = 0x00;
-uint8_t vent_id_1 = 0x01;
-uint8_t vent_id_2 = 0x02;
-uint8_t vent_id_3 = 0x03;
-uint8_t vent_ids[] = { 0x00, 0x01, 0x02, 0x03 };
-
-HAL_StatusTypeDef transmit_updated_state(uint8_t data) {
-	HAL_StatusTypeDef transmit_status = HAL_UART_Transmit(&huart4, data, 1,
-			100);
-	return transmit_status;
-}
-
-HAL_StatusTypeDef receive_acknowledge(uint8_t *received_data) {
-	HAL_StatusTypeDef receive_status = HAL_UART_Receive(&huart4, received_data,
-			1, 100);
-	return receive_status;
-}
-
-void transmit_room_info(uint8_t *received_data, uint8_t room_index) {
-	while (receive_acknowledge(received_data) != HAL_OK) {
-		uint8_t lower_temp = ((rooms[room_index].goalTemp & 0x0F) << 4) | rooms[room_index].ID;
-		transmit_updated_state(lower_temp);
-	}
-	while (receive_acknowledge(received_data) != HAL_OK) {
-		uint8_t upper_temp = (rooms[room_index].goalTemp & 0xF0) | rooms[room_index].ID;
-		transmit_updated_state(upper_temp);
-	}
-	while (receive_acknowledge(received_data) != HAL_OK) {
-		transmit_updated_state((furnaceState << 5) | rooms[room_index].ID);
-	}
-}
-
-//HAL_StatusTypeDef transmit_updated_state(room_t *rooms, int furnace_status) {
-//	HAL_StatusTypeDef transmit_status;
-//	uint8_t data[] = { send_desired_state, (uint8_t) ((furnace_status << 7)
-//			| ((rooms->goalTemp - 55) << 2) | rooms->ID) };
-//	for (int j = 0; j < sizeof(data); j++) {
-//		transmit_status = HAL_UART_Transmit(&huart4, &(data[j]), 1, 1000);
-//	}
-//	HAL_Delay(1000);
-//	return transmit_status;
-//}
 
 /* USER CODE END 0 */
 
@@ -262,10 +243,11 @@ int main(void) {
 	MX_UART4_Init();
 	MX_TIM3_Init();
 	/* USER CODE BEGIN 2 */
-	int res = LCD_begin(&hspi1);
-	for (int i = 0; i < 3; ++i)
-		initRoom(&rooms[i], i + 1, 70, 65);
-	initDisplay(&hspi1, &rooms[0], 3);
+	LCD_begin(&hspi1);
+	initRoom(&currRoomState[0], 1, 70, 65);
+	initRoom(&currRoomState[1], 2, 70, 65);
+	initRoom(&currRoomState[2], 3, 70, 65);
+	initDisplay(&hspi1);
 
 	/* USER CODE END 2 */
 
@@ -288,10 +270,10 @@ int main(void) {
 			int newGoal1 = 0, newGoal2 = 0, newGoal3 = 0, newFurnace = 0;
 			if (X > COL_1 - ERROR && X < COL_1 + ERROR) {
 				if (Y > ROW_1 - ERROR && Y < ROW_1 + ERROR) {
-					rooms[0].goalTemp += 1;
+					currRoomState[0].goal += 1;
 					newGoal1 = 1;
 				} else if (Y > ROW_2 - ERROR && Y < ROW_2 + ERROR) {
-					rooms[0].goalTemp -= 1;
+					currRoomState[0].goal -= 1;
 					newGoal1 = 1;
 				} else if (Y > ROW_3 - ERROR && Y < ROW_3 + ERROR) {
 					furnaceState = 0;
@@ -299,18 +281,18 @@ int main(void) {
 				}
 			} else if (X > COL_2 - ERROR && X < COL_2 + ERROR) {
 				if (Y > ROW_1 - ERROR && Y < ROW_1 + ERROR) {
-					rooms[1].goalTemp += 1;
+					currRoomState[1].goal += 1;
 					newGoal2 = 1;
 				} else if (Y > ROW_2 - ERROR && Y < ROW_2 + ERROR) {
-					rooms[1].goalTemp -= 1;
+					currRoomState[1].goal -= 1;
 					newGoal2 = 1;
 				}
 			} else if (X > COL_3 - ERROR && X < COL_3 + ERROR) {
 				if (Y > ROW_1 - ERROR && Y < ROW_1 + ERROR) {
-					rooms[2].goalTemp += 1;
+					currRoomState[2].goal += 1;
 					newGoal3 = 1;
 				} else if (Y > ROW_2 - ERROR && Y < ROW_2 + ERROR) {
-					rooms[2].goalTemp -= 1;
+					currRoomState[2].goal -= 1;
 					newGoal3 = 1;
 				} else if (Y > ROW_3 - ERROR && Y < ROW_3 + ERROR) {
 					furnaceState = 1;
@@ -319,96 +301,32 @@ int main(void) {
 			}
 
 			for (int i = 0; i < 3; ++i) {
-				rooms[i].goalTemp =
-						(rooms[i].goalTemp < 99) ? rooms[i].goalTemp : 99;
-				rooms[i].goalTemp =
-						(rooms[i].goalTemp > 0) ? rooms[i].goalTemp : 0;
-				rooms[i].currTemp =
-						(rooms[i].currTemp < 99) ? rooms[i].currTemp : 99;
-				rooms[i].currTemp =
-						(rooms[i].currTemp > 0) ? rooms[i].currTemp : 0;
+				currRoomState[i].goal = (currRoomState[i].goal < 99) ? currRoomState[i].goal : 99;
+				currRoomState[i].goal = (currRoomState[i].goal > 0) ? currRoomState[i].goal : 0;
+
+				currRoomState[i].temp = (currRoomState[i].temp < 99) ? currRoomState[i].temp : 99;
+				currRoomState[i].temp = (currRoomState[i].temp > 0) ? currRoomState[i].temp : 0;
 			}
 
 			if (newGoal1) {
-				interrupts_disabled = 1;
 				transmit_room_info(received_data, 0);
-				interrupts_disabled = 0;
-				updateDisplayTemp(&hspi1, &rooms[0]);
+				updateDisplayTemp(&hspi1, 0);
 			}
 			if (newGoal2) {
-				interrupts_disabled = 1;
 				transmit_room_info(received_data, 1);
-				interrupts_disabled = 0;
-				updateDisplayTemp(&hspi1, &rooms[1]);
+				updateDisplayTemp(&hspi1, 1);
 			}
 			if (newGoal3) {
-				interrupts_disabled = 1;
 				transmit_room_info(received_data, 2);
-				interrupts_disabled = 0;
-				updateDisplayTemp(&hspi1, &rooms[2]);
+				updateDisplayTemp(&hspi1, 2);
 			}
 			if (newFurnace) {
-				interrupts_disabled = 1;
 				transmit_room_info(received_data, 0);
 				transmit_room_info(received_data, 1);
 				transmit_room_info(received_data, 2);
-				interrupts_disabled = 0;
-				updateDisplayFurnace(&hspi1, furnaceState);
+				updateDisplayFurnace(&hspi1);
 			}
 		}
-
-//	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
-
-//	  if(pin_state){
-//		  for(int i = 0; i < sizeof(data); i++){
-//			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
-//		  }
-//		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
-//	  }
-
-//	  for(int i = sizeof(received_data) - 1; i >= 0; i--){
-//		  receive_status = HAL_UART_Receive(&huart4, &(received_data[i]), 1, 1000);
-//	  }
-//	  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
-
-//	  if(received_data[0] == 31 && receive_status == HAL_OK){
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-//	  } else {
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-//	  }
-
-//	  if(received_data[0] == 0x41){
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-//	  } else if(received_data[0] == 0x42){
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-//	  } else if(received_data[0] == 0x43){
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-//		  HAL_Delay(1000);
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-//	  } else {
-//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-//	  }
-
-		HAL_Delay(10);
-
 	}
 	/* USER CODE END 3 */
 }
@@ -804,30 +722,28 @@ static void MX_GPIO_Init(void) {
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	if (!interrupts_disabled) {
-		if (htim == &htim3) {
-			uint8_t received_data[1];
+	if (htim == &htim3) {
+		uint8_t received_data[1];
 
-			transmit_room_info(received_data, 0);
-			rooms[0].currTemp = received_data[0];
-			transmit_room_info(received_data, 1);
-			rooms[1].currTemp = received_data[0];
-			transmit_room_info(received_data, 2);
-			rooms[2].currTemp = received_data[0];
+		transmit_room_info(received_data, 0);
+		currRoomState[0].temp = received_data[0];
+		transmit_room_info(received_data, 1);
+		currRoomState[1].temp = received_data[0];
+		transmit_room_info(received_data, 2);
+		currRoomState[2].temp = received_data[0];
 
-//			while (receive_acknowledge(received_data) != HAL_OK) {
-//				transmit_updated_state(1);
-//			}
-//			rooms[0].currTemp = received_data[0];
-//			while (receive_acknowledge(received_data) != HAL_OK) {
-//				transmit_updated_state(2);
-//			}
-//			rooms[1].currTemp = received_data[0];
-//			while (receive_acknowledge(received_data) != HAL_OK) {
-//				transmit_updated_state(3);
-//			}
-//			rooms[2].currTemp = received_data[0];
-		}
+	//			while (receive_acknowledge(received_data) != HAL_OK) {
+	//				transmit_updated_state(1);
+	//			}
+	//			currRoomState[0].currTemp = received_data[0];
+	//			while (receive_acknowledge(received_data) != HAL_OK) {
+	//				transmit_updated_state(2);
+	//			}
+	//			currRoomState[1].currTemp = received_data[0];
+	//			while (receive_acknowledge(received_data) != HAL_OK) {
+	//				transmit_updated_state(3);
+	//			}
+	//			currRoomState[2].currTemp = received_data[0];
 	}
 }
 /* USER CODE END 4 */

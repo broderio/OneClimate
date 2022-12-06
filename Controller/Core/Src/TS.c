@@ -42,7 +42,6 @@ void ADC_Select(ADC_HandleTypeDef *hadc, uint32_t channel, GPIO_TypeDef* port, u
 double TS_readY(ADC_HandleTypeDef *hadc)
 {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	ADC_ChannelConfTypeDef sConfig = {0};
 
 	// Pull Y+ high and Y- low to get voltage differential
 	GPIO_InitStruct.Pin = YPOS_PIN;

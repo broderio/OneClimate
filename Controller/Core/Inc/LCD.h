@@ -130,6 +130,7 @@ uint16_t LCD_readPixel(SPI_HandleTypeDef* spi, int16_t x, int16_t y);
 void LCD_drawChar(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char c, uint16_t color, uint32_t size);
 void LCD_drawString(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char* c, uint32_t length, uint16_t color, uint32_t size);
 void LCD_drawButton(SPI_HandleTypeDef* spi, int16_t x, int16_t y, int button, uint16_t color, uint32_t size);
+void LCD_drawButtonNoBG(SPI_HandleTypeDef* spi, int16_t x, int16_t y, int button, uint16_t color, uint32_t size);
 void LCD_drawCharNoBG(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char c, uint16_t color, uint32_t size);
 void LCD_drawStringNoBG(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char* c, uint32_t length, uint16_t color, uint32_t size);
 void LCD_drawCharOPT(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char c1, unsigned char c2, uint16_t color, uint32_t size);

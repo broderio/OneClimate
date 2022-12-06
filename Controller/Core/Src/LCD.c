@@ -150,7 +150,6 @@ int invertDisplay(SPI_HandleTypeDef* spi, int invert)
 
 int LCD_setAddrWindow(SPI_HandleTypeDef* spi, uint16_t x1, uint16_t y1, uint16_t w, uint16_t h)
 {
-	HAL_StatusTypeDef result;
 	uint16_t x2 = x1 + w - 1;
 	uint16_t y2 = y1 + h - 1;
 	uint8_t buf[2];
@@ -671,7 +670,6 @@ void LCD_drawButtonNoBG(SPI_HandleTypeDef* spi, int16_t x, int16_t y, int button
 	   ((y + 8 * size - 1) < 0))   // Clip top
 		return;
 
-	uint16_t bg = LCD_color565(255, 255, 255);
 	LCD_startWrite();
 	for(int8_t i = 0; i < 5; i++) // Char bitmap = 5 columns
 	{
