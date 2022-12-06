@@ -13,6 +13,9 @@
 #define HX8357_TFTWIDTH 320  ///< 320 pixels wide
 #define HX8357_TFTHEIGHT 480 ///< 480 pixels tall
 
+#define LCD_WIDTH 320  ///< 320 pixels wide
+#define LCD_HEIGHT 480 ///< 480 pixels tall
+
 #define HX8357_NOP 0x00     ///< No op
 #define HX8357_SWRESET 0x01 ///< software reset
 #define HX8357_RDDID 0x04   ///< Read ID
@@ -99,12 +102,12 @@
 #define MADCTL_MH 0x04  ///< LCD refresh right to left
 
 // Pin definitions
-#define RST_PORT GPIOD
-#define RST_PIN GPIO_PIN_15
 #define DC_PORT GPIOF
 #define DC_PIN GPIO_PIN_12
 #define CS_PORT GPIOF
 #define CS_PIN GPIO_PIN_13
+#define RST_PORT GPIOF
+#define RST_PIN GPIO_PIN_14
 
 void uint16_to_bytes(uint16_t in, uint8_t *out);
 void uint16a_to_bytes(uint16_t* in, uint8_t *out, uint32_t len);
@@ -120,9 +123,17 @@ int invertDisplay(SPI_HandleTypeDef* spi, int invert);
 int LCD_setAddrWindow(SPI_HandleTypeDef* spi, uint16_t x1, uint16_t y1, uint16_t w, uint16_t h);
 uint16_t LCD_color565(uint8_t red, uint8_t green, uint8_t blue);
 int LCD_pushColor(SPI_HandleTypeDef* spi, uint16_t color);
-int LCD_pushColors(SPI_HandleTypeDef* spi, uint16_t* colors, uint32_t len);
+int LCD_pushColorCopy(SPI_HandleTypeDef* spi, uint16_t color, uint32_t count);
 int LCD_writePixel(SPI_HandleTypeDef* spi, int16_t x, int16_t y, uint16_t color);
-int LCD_writePixels(SPI_HandleTypeDef* spi, uint16_t* colors, int16_t x, int16_t y, int16_t w, int16_t h);
+int LCD_writePixels(SPI_HandleTypeDef* spi, uint16_t color, int16_t x, int16_t y, int16_t w, int16_t h);
+uint16_t LCD_readPixel(SPI_HandleTypeDef* spi, int16_t x, int16_t y);
+void LCD_drawChar(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char c, uint16_t color, uint32_t size);
+void LCD_drawString(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char* c, uint32_t length, uint16_t color, uint32_t size);
+void LCD_drawButton(SPI_HandleTypeDef* spi, int16_t x, int16_t y, int button, uint16_t color, uint32_t size);
+void LCD_drawCharNoBG(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char c, uint16_t color, uint32_t size);
+void LCD_drawStringNoBG(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char* c, uint32_t length, uint16_t color, uint32_t size);
+void LCD_drawCharOPT(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char c1, unsigned char c2, uint16_t color, uint32_t size);
+void LCD_drawStringOPT(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char* c1, unsigned char* c2, uint32_t length, uint16_t color, uint32_t size);
 
 
 #endif /* INC_LCD_H_ */

@@ -5119,3 +5119,19 @@
 2022-11-26 13:15:32,304 [INFO] IPUIPlugin:79 - create IPUIPlugin
 2022-11-26 13:15:32,306 [INFO] IPUIPlugin:79 - create IPUIPlugin
 2022-11-26 13:15:32,458 [INFO] OpenFileManager:327 - Restore cursor
+2022-12-06 11:20:39,142 [INFO] Activator:177 - 
+
+
+2022-12-06 11:20:39,144 [INFO] Activator:178 - !SESSION log4j initialized
+2022-12-06 11:20:43,490 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] 
+2022-12-06 11:21:08,770 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+2022-12-06 11:21:08,771 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Defaulting to no-operation (NOP) logger implementation
+2022-12-06 11:21:08,772 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+2022-12-06 11:26:57,023 [INFO] Activator:177 - 
+
+
+2022-12-06 11:26:57,026 [INFO] Activator:178 - !SESSION log4j initialized
+2022-12-06 11:27:01,816 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] 
+2022-12-06 11:27:26,681 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+2022-12-06 11:27:26,681 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: Defaulting to no-operation (NOP) logger implementation
+2022-12-06 11:27:26,682 [ERROR] LogOutputStream:74 - [STDERR_REDIRECT] SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
