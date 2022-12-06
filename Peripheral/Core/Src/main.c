@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-uint8_t my_id = 2;
+uint8_t my_id = 1;
 uint8_t my_data = 0x42;
 /* USER CODE END PD */
 
@@ -70,6 +70,10 @@ static void MX_TIM3_Init(void);
 #define PWM0 1500
 #define PWM90 2400
 
+float Curr_temp = 65;
+float Set_temp = 65;
+int Heat_on = 1;
+
 void open_vent() {
 	uint32_t *tim4_ccr2 = (uint32_t*) (TIM4_ADDR + TIM_CCR2_OFFSET);
 	*tim4_ccr2 &= ~CCR_MASK;
@@ -94,10 +98,6 @@ void get_temp() {
 	float tempC = (ADC_to_V - 0.5) * (1 / .01); // converts temp sensor voltage to degrees Celsius
 	Curr_temp = (tempC * 9 / 5) + 32;  // converts to F
 }
-
-float Curr_temp = 65;
-float Set_temp = 65;
-int Heat_on = 1;
 
 /* USER CODE END 0 */
 

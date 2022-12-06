@@ -139,7 +139,7 @@ int main(void)
 	  uint8_t data[data_size];
 	  uint8_t received_data[received_data_size];
 
-	  for(uint8_t = 1; i <= 3; i++){
+	  for(uint8_t i = 1; i <= 3; i++){
 		  data[0] = send_desired_state;
 		  data[1] = (uint8_t)((furnace_status_on << 7)|(desired_temp[i] << 2)|vent_ids[i]);
 		  for(int j = 0; j < sizeof(data); j++){
