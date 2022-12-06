@@ -31,8 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-uint8_t my_id = 2;
-uint8_t my_data = 0x42;
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -64,39 +63,50 @@ static void MX_TIM3_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#define TIM4_ADDR 0x40000800//timer 4 base register
-#define TIM_CCR2_OFFSET 0x38//capture/compare register 2
-#define CCR_MASK 0xFFFF
-#define PWM0 1500
-#define PWM90 2400
+#define TIM4_ADDR 				0x40000800	// timer 4 base register
+#define TIM_CCR2_OFFSET 		0x38		// capture/compare register 2
+#define CCR_MASK 				0xFFFF
+#define PWM0 					1500
+#define PWM90 					2400
 
-uint8_t Curr_temp = 65;
-uint8_t Set_temp = 65;
-int Heat_on = 1;
+#define DATA_SIZE 				2
+#define RECEIVED_DATA_SIZE		1
+#define SEND_DESIRED_STATE		0x00
+#define RECEIVE_CURRENT_TEMP	0x80
+#define FURNACE_ON				0x80
+#define FURNACE_OFF				0x00
+#define VENT_ID_1				0x01
+#define VENT_ID_2				0x02
+#define VENT_ID_3				0x03
 
-void open_vent() {
+uint8_t id = 2;
+uint8_t temp = 65;
+uint8_t goal = 65;
+int furnaceState = 1;
+
+void openVent() {
 	uint32_t *tim4_ccr2 = (uint32_t*) (TIM4_ADDR + TIM_CCR2_OFFSET);
 	*tim4_ccr2 &= ~CCR_MASK;
 	*tim4_ccr2 |= PWM0;
 }
-;
 
-void close_vent() {
+void closeVent() {
 	uint32_t *tim4_ccr2 = (uint32_t*) (TIM4_ADDR + TIM_CCR2_OFFSET);
 	*tim4_ccr2 &= ~CCR_MASK;
 	*tim4_ccr2 |= PWM90;
 }
-;
 
-void get_temp() {
+void getTemp() {
 	float Vref = 3.3;
-	uint32_t ADC_VAL = 0;
+	float ADC_VAL = 0;
+
 	HAL_ADC_Start(&hadc1); //start conversion
 	HAL_ADC_PollForConversion(&hadc1, 0xFFFFFFFF); //wait for conversion to finish
-	ADC_VAL = HAL_ADC_GetValue(&hadc1); //retrieve value
-	float ADC_to_V = ADC_VAL * Vref / 4096; //converts ADC output to volts
-	float tempC = (ADC_to_V - 0.5) * (1 / .01); // converts temp sensor voltage to degrees Celsius
-	Curr_temp = (uint8_t)((tempC * 9.0f / 5.0f) + 32.0f);  // converts to F
+	ADC_VAL = (float)HAL_ADC_GetValue(&hadc1); //retrieve value
+
+	float ADC_to_V = ADC_VAL * Vref / 4096.0f; //converts ADC output to volts
+	float tempC = (ADC_to_V - 0.5f) * (1.0f / 0.01f); // converts temp sensor voltage to degrees Celsius
+	temp = (uint8_t)((tempC * 9.0f / 5.0f) + 32.0f);  // converts to F
 }
 
 /* USER CODE END 0 */
@@ -133,103 +143,45 @@ int main(void) {
 	MX_ADC1_Init();
 	MX_TIM3_Init();
 	/* USER CODE BEGIN 2 */
-	HAL_StatusTypeDef transmit_status;
-	HAL_StatusTypeDef receive_status;
+
 	HAL_TIM_Base_Start_IT(&htim3);
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
-
-	/* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
-	 *							  ([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) */
-	uint8_t data_size = 1;
-	uint8_t received_data_size = 2;
-	uint8_t send_desired_state = 0x00;
-	uint8_t receive_current_temp = 0x80;
-	uint8_t furnace_status_on = 0x80;
-	uint8_t furnace_status_off = 0x00;
-	uint8_t vent_id_1 = 0x01;
-	uint8_t vent_id_2 = 0x02;
-	uint8_t vent_id_3 = 0x03;
 
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
+	uint8_t inData = 0;
+	uint64_t timer = 0;
 	while (1) {
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
 //		heat on + goal > higher than current => open vent
 //		air on + goal < than current => close vent
-//		float test = Curr_temp;
-//		get_temp();
-		uint8_t data[] = { Curr_temp };
-		uint8_t received_data[1];
 
-		receive_status = HAL_UART_Receive(&huart1, received_data, 1, 100);
-		if((received_data[0] & 0x0F) != my_id) continue;
+		while (HAL_UART_Receive(&huart1, &inData, 1, 100) != HAL_OK) timer++;
+		if((inData & 0x0F) != id) continue;
 
-		transmit_status = HAL_UART_Transmit(&huart1, &Curr_temp, 1, 100);
+		timer = 0;
+		while (HAL_UART_Transmit(&huart1, &temp, 1, 100) != HAL_OK) timer++;
+		goal = inData >> 4;
 
-		Set_temp = received_data[0] >> 4;
+		timer = 0;
+		while (HAL_UART_Receive(&huart1, &inData, 1, 100) != HAL_OK) timer++;
+		if((inData & 0x0F) != id) continue;
 
-		receive_status = HAL_UART_Receive(&huart1, received_data, 1, 100);
-		if(received_data[0] & 0x0F != my_id) continue;
+		timer = 0;
+		while (HAL_UART_Transmit(&huart1, &temp, 1, 100) != HAL_OK) timer++;
+		goal |= inData & 0xF0;
 
-		transmit_status = HAL_UART_Transmit(&huart1, data, 1, 100);
+		timer = 0;
+		while (HAL_UART_Receive(&huart1, &inData, 1, 100) != HAL_OK) timer++;
+		if((inData & 0x0F) != id) continue;
 
-		Set_temp = Set_temp | (received_data[0] & 0xF0);
-
-		receive_status = HAL_UART_Receive(&huart1, received_data, 1, 100);
-		if(received_data[0] & 0x0F != my_id) continue;
-
-		transmit_status = HAL_UART_Transmit(&huart1, data, 1, 100);
-
-		Heat_on = received_data[0] >> 4;
-
-
-//		for (int i = sizeof(received_data) - 1; i >= 0; i--) {
-//			receive_status = HAL_UART_Receive(&huart1, &(received_data[i]), 1,
-//					1000);
-//		}
-//
-//		if((((received_data[0] & receive_current_temp) >> 7) == 1) && ((received_data[0] & 0x03) == my_id)){
-//			data[0] = (uint8_t)Curr_temp;
-//			transmit_status = HAL_UART_Transmit(&huart1, &(data[0]), 1, 1000);
-//		} else if((((received_data[0] & send_desired_state) >> 7) == 0) && ((received_data[0] & 0x03) == my_id)){
-//			Heat_on = (received_data[0] & 0x80) >> 7;
-//			Set_temp = ((received_data[0] & 124) >> 2) + 55;
-//			uint8_t temp = Set_temp;
-//			int k = 0;
-//			k++;
-//		}
-
-//		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
-//		if (pin_state == GPIO_PIN_SET) {
-//			pin_state = GPIO_PIN_RESET;
-//		} else {
-//			pin_state = GPIO_PIN_SET;
-//		}
-//
-//		if (pin_state) {
-//			for (int i = 0; i < sizeof(data); i++) {
-//				transmit_status = HAL_UART_Transmit(&huart1, &(data[i]), 1,
-//						1000);
-//			}
-//			transmit_status = HAL_UART_Transmit(&huart1, data, sizeof(data), 100);
-//		}
-
-//		receive_status = HAL_UART_Receive(&huart1, received_data, sizeof(received_data), 100);
-
-//		if (received_data[1] == 0 && received_data[0] == 253
-//				&& receive_status == HAL_OK) {
-//			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-//			open_vent();
-//			HAL_Delay(1000);
-//			close_vent();
-//			HAL_Delay(100);
-//		} else {
-//			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-//		}
+		timer = 0;
+		while (HAL_UART_Transmit(&huart1, &temp, 1, 100) != HAL_OK) timer++;
+		furnaceState = inData >> 4;
 	}
 	/* USER CODE END 3 */
 }
@@ -481,15 +433,18 @@ static void MX_GPIO_Init(void) {
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
-		get_temp();
-		if (Heat_on && Curr_temp < Set_temp) {
-			open_vent();
-		} else if (Heat_on && Curr_temp > Set_temp) {
-			close_vent();
-		} else if (!Heat_on && Curr_temp < Set_temp) {
-			close_vent();
-		} else {
-			open_vent();
+		getTemp();
+		if (furnaceState && temp < goal) {
+			openVent();
+		}
+		else if (furnaceState && temp > goal) {
+			closeVent();
+		}
+		else if (!furnaceState && temp < goal) {
+			closeVent();
+		}
+		else {
+			openVent();
 		}
 	}
 }
