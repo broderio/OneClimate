@@ -77,7 +77,7 @@ void initRoom(room_t *room, int ID, int goalTemp, int currTemp) {
 
 void initDisplay(SPI_HandleTypeDef *spi, room_t *rooms, int count) {
 	LCD_writePixels(&hspi1, LCD_color565(255, 255, 255), 0, 0, LCD_WIDTH,
-			LCD_HEIGHT);
+	LCD_HEIGHT);
 	for (int i = 0; i < count; ++i) {
 		itoa(rooms[i].goalTemp, &goalTemp[i][0], 10);
 		itoa(rooms[i].currTemp, &currTemp[i][0], 10);
@@ -139,14 +139,14 @@ void updateDisplayFurnace(SPI_HandleTypeDef *spi, int furnaceState) {
 	int size = 6;
 	if (furnaceState) {
 		LCD_writePixels(spi, LCD_color565(255, 255, 255), size,
-				LCD_HEIGHT - 8 * 6 - 4, 23 * size, 2);
+		LCD_HEIGHT - 8 * 6 - 4, 23 * size, 2);
 		LCD_writePixels(&hspi1, LCD_color565(0, 0, 0), LCD_WIDTH - 18 * 6,
-				LCD_HEIGHT - 8 * 6 - 4, 17 * size, 2);
+		LCD_HEIGHT - 8 * 6 - 4, 17 * size, 2);
 	} else {
 		LCD_writePixels(spi, LCD_color565(0, 0, 0), size,
-				LCD_HEIGHT - 8 * 6 - 4, 23 * size, 2);
+		LCD_HEIGHT - 8 * 6 - 4, 23 * size, 2);
 		LCD_writePixels(&hspi1, LCD_color565(255, 255, 255), LCD_WIDTH - 18 * 6,
-				LCD_HEIGHT - 8 * 6 - 4, 17 * size, 2);
+		LCD_HEIGHT - 8 * 6 - 4, 17 * size, 2);
 	}
 }
 /* USER CODE END PV */
@@ -172,6 +172,9 @@ uint8_t desired_temp[] = { 0, 11, 11, 0 };
 HAL_StatusTypeDef transmit_status;
 HAL_StatusTypeDef receive_status;
 
+int interrupts_disabled = 0;
+room_t rooms[3];
+
 /* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
  *							([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) */
 uint8_t data_size = 2;
@@ -185,9 +188,21 @@ uint8_t vent_id_2 = 0x02;
 uint8_t vent_id_3 = 0x03;
 uint8_t vent_ids[] = { 0x00, 0x01, 0x02, 0x03 };
 
+HAL_StatusTypeDef transmit_updated_state(uint8_t data) {
+	HAL_StatusTypeDef transmit_status = HAL_UART_Transmit(&huart4, data, 1,
+			100);
+	return transmit_status;
+}
+
+HAL_StatusTypeDef receive_acknowledge(uint8_t* received_data) {
+	HAL_StatusTypeDef receive_status = HAL_UART_Receive(&huart4, received_data, 1, 100);
+	return receive_status;
+}
+
 HAL_StatusTypeDef transmit_updated_state(room_t *rooms, int furnace_status) {
 	HAL_StatusTypeDef transmit_status;
-	uint8_t data[] = { send_desired_state, (uint8_t) ((furnace_status << 7) | ((rooms.goalTemp - 55) << 2) | rooms.ID) };
+	uint8_t data[] = { send_desired_state, (uint8_t) ((furnace_status << 7)
+			| ((rooms->goalTemp - 55) << 2) | rooms->ID) };
 	for (int j = 0; j < sizeof(data); j++) {
 		transmit_status = HAL_UART_Transmit(&huart4, &(data[j]), 1, 1000);
 	}
@@ -232,7 +247,6 @@ int main(void) {
 	MX_TIM3_Init();
 	/* USER CODE BEGIN 2 */
 	int res = LCD_begin(&hspi1);
-	room_t rooms[3];
 	for (int i = 0; i < 3; ++i)
 		initRoom(&rooms[i], i + 1, 70, 65);
 	initDisplay(&hspi1, &rooms[0], 3);
@@ -248,6 +262,7 @@ int main(void) {
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
+		uint8_t received_data[1];
 
 		z = TS_readPressure(&hadc1);
 		x = TS_readX(&hadc1);
@@ -299,23 +314,62 @@ int main(void) {
 						(rooms[i].currTemp > -9) ? rooms[i].currTemp : -9;
 			}
 
-			if (newGoal1)
-				while (transmit_updated_state(&(rooms[0]), furnaceState)
-						!= HAL_OK);
-					updateDisplayTemp(&hspi1, &rooms[0]);
-			if (newGoal2)
-				while (transmit_updated_state(&(rooms[1]), furnaceState)
-						!= HAL_OK);
-					updateDisplayTemp(&hspi1, &rooms[1]);
-			if (newGoal3)
-				while (transmit_updated_state(&(rooms[2]), furnaceState)
-						!= HAL_OK);
-					updateDisplayTemp(&hspi1, &rooms[2]);
-			if (newFurnace)
-				for(uint8_t i = 0; i < 3; i++){
-					while (transmit_updated_state(&(rooms[i]), furnaceState) != HAL_OK);
+			if (newGoal1) {
+				interrupts_disabled = 1;
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(rooms[0].ID);
 				}
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(rooms[0].goalTemp);
+				}
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(furnaceState);
+				}
+				interrupts_disabled = 0;
+				updateDisplayTemp(&hspi1, &rooms[0]);
+			}
+			if (newGoal2) {
+				interrupts_disabled = 1;
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(rooms[1].ID);
+				}
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(rooms[1].goalTemp);
+				}
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(furnaceState);
+				}
+				interrupts_disabled = 0;
+				updateDisplayTemp(&hspi1, &rooms[1]);
+			}
+			if (newGoal3) {
+				interrupts_disabled = 1;
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(rooms[2].ID);
+				}
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(rooms[2].goalTemp);
+				}
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(furnaceState);
+				}
+				interrupts_disabled = 0;
+				updateDisplayTemp(&hspi1, &rooms[2]);
+			}
+			if (newFurnace) {
+				interrupts_disabled = 1;
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(rooms[0].ID);
+				}
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(rooms[2].goalTemp);
+				}
+				while (receive_acknowledge(received_data) != HAL_OK) {
+					transmit_updated_state(furnaceState);
+				}
+				interrupts_disabled = 0;
 				updateDisplayFurnace(&hspi1, furnaceState);
+			}
 		}
 
 //	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
@@ -442,7 +496,7 @@ static void MX_ADC1_Init(void) {
 	/** Common config
 	 */
 	hadc1.Instance = ADC1;
-	hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+	hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV12;
 	hadc1.Init.Resolution = ADC_RESOLUTION_12B;
 	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
 	hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
@@ -464,7 +518,7 @@ static void MX_ADC1_Init(void) {
 	 */
 	sConfig.Channel = ADC_CHANNEL_1;
 	sConfig.Rank = ADC_REGULAR_RANK_1;
-	sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+	sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
 	sConfig.SingleDiff = ADC_SINGLE_ENDED;
 	sConfig.OffsetNumber = ADC_OFFSET_NONE;
 	sConfig.Offset = 0;
@@ -701,6 +755,9 @@ static void MX_GPIO_Init(void) {
 	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12 | GPIO_PIN_13, GPIO_PIN_SET);
 
 	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_14, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(GPIOB, LD3_Pin | LD2_Pin, GPIO_PIN_RESET);
 
 	/*Configure GPIO pin Output Level */
@@ -716,8 +773,8 @@ static void MX_GPIO_Init(void) {
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : PF12 PF13 */
-	GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_13;
+	/*Configure GPIO pins : PF12 PF13 PF14 */
+	GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -762,19 +819,21 @@ static void MX_GPIO_Init(void) {
 
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	if (htim == &htim3) {
-		for (uint8_t i = 0; i < 3; i++) {
-			uint8_t data[] =
-					{ receive_current_temp | vent_ids[i], (uint8_t) (0) };
+	if (!interrupts_disabled) {
+		if (htim == &htim3) {
 			uint8_t received_data[1];
-			for (int j = 0; j < sizeof(data); j++) {
-				transmit_status = HAL_UART_Transmit(&huart4, &(data[j]), 1,
-						1000);
+			while (receive_acknowledge(received_data) != HAL_OK) {
+				transmit_updated_state(1);
 			}
-			HAL_Delay(1000);
-			receive_status = HAL_UART_Receive(&huart4, &(received_data[0]), 1,
-					1000);
-			curr_temp[i] = received_data[0];
+			rooms[0].currTemp = received_data[0];
+			while (receive_acknowledge(received_data) != HAL_OK) {
+				transmit_updated_state(2);
+			}
+			rooms[1].currTemp = received_data[0];
+			while (receive_acknowledge(received_data) != HAL_OK) {
+				transmit_updated_state(3);
+			}
+			rooms[2].currTemp = received_data[0];
 		}
 	}
 }
