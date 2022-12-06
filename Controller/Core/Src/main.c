@@ -173,6 +173,7 @@ HAL_StatusTypeDef transmit_status;
 HAL_StatusTypeDef receive_status;
 
 int interrupts_disabled = 0;
+int furnaceState = 0;
 room_t rooms[3];
 
 /* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
@@ -270,7 +271,6 @@ int main(void) {
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
-	int furnaceState = 0;
 	double x, y, z;
 	double X, Y;
 	while (1) {
