@@ -138,7 +138,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  uint8_t data[] = {send_desired_state, (uint8_t)(furnace_status_on|(31 << 2)|vent_id_1)};
+	  uint8_t data[data_size];
 	  uint8_t received_data[received_data_size];
 
 
