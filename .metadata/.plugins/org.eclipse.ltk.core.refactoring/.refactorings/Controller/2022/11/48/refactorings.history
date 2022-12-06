@@ -1,3 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">&#x0A;<refactoring comment="Rename resource &apos;Controller/Core/Inc/LCD_HXD8357D.h&apos; to &apos;LCD.h&apos;" description="Rename resource &apos;LCD_HXD8357D.h&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="Core/Inc/LCD_HXD8357D.h" name="LCD.h" stamp="1669442439320" updateReferences="true"/>&#x0A;<refactoring comment="Rename resource &apos;Controller/Core/Src/LCD_HXD8357D.c&apos; to &apos;LCD.c&apos;" description="Rename resource &apos;LCD_HXD8357D.c&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="Core/Src/LCD_HXD8357D.c" name="LCD.c" stamp="1669442482048" updateReferences="true"/>
-</session>
