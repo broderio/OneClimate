@@ -82,7 +82,7 @@ static void MX_TIM3_Init(void);
 uint8_t id = 2;
 uint8_t temp = 65;
 uint8_t goal = 65;
-int furnaceState = 1;
+int furnaceState = 0;
 
 void openVent() {
 	uint32_t *tim4_ccr2 = (uint32_t*) (TIM4_ADDR + TIM_CCR2_OFFSET);
@@ -437,14 +437,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		if (furnaceState && temp < goal) {
 			openVent();
 		}
-		else if (furnaceState && temp > goal) {
+		else if (furnaceState && temp >= goal) {
 			closeVent();
 		}
-		else if (!furnaceState && temp < goal) {
-			closeVent();
-		}
-		else {
+		else if (!furnaceState && temp > goal) {
 			openVent();
+		}
+		else if (!furnaceState && temp <= goal) {
+			closeVent();
 		}
 	}
 }
