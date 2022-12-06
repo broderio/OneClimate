@@ -66,6 +66,12 @@ static void MX_UART4_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint8_t vent_1_curr_temp = 0;
+uint8_t vent_1_desired_temp = 0;
+uint8_t vent_2_curr_temp = 0;
+uint8_t vent_2_desired_temp = 0;
+uint8_t vent_3_curr_temp = 0;
+uint8_t vent_3_desired_temp = 0;
 
 /* USER CODE END 0 */
 
@@ -110,8 +116,8 @@ int main(void)
    *							([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) */
    uint8_t data_size = 2;
    uint8_t received_data_size = 1;
-   uint8_t send_desired_state = 0;
-   uint8_t receive_current_temp = 1;
+   uint8_t send_desired_state = 0x00;
+   uint8_t receive_current_temp = 0x80;
    uint8_t furnace_status_on = 0x80;
    uint8_t furnace_status_off = 0x00;
    uint8_t vent_id_1 = 0x01;
@@ -131,14 +137,41 @@ int main(void)
 	  uint8_t data[] = {send_desired_state, (uint8_t)(furnace_status_on|(31 << 2)|vent_id_1)};
 	  uint8_t received_data[received_data_size];
 
-	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
 
-	  if(pin_state){
+	  if(vent_1_curr_temp != vent_1_desired_temp){
+		  data[0] = send_desired_state;
+		  data[1] = (uint8_t)(furnace_status_on|(vent_1_desired_temp << 2)|vent_id_1);
 		  for(int i = 0; i < sizeof(data); i++){
 			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
 		  }
-//		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
+		  HAL_Delay(5000);
+		  vent_1_curr_temp = vent_1_desired_temp;
+	  } else if (vent_2_curr_temp != vent_2_desired_temp){
+		  data[0] = send_desired_state;
+		  data[1] = (uint8_t)(furnace_status_on|(vent_2_desired_temp << 2)|vent_id_2);
+		  for(int i = 0; i < sizeof(data); i++){
+			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
+		  }
+		  HAL_Delay(5000);
+		  vent_2_curr_temp = vent_2_desired_temp;
+	  } else if(vent_3_curr_temp != vent_3_desired_temp){
+		  data[0] = send_desired_state;
+		  data[1] = (uint8_t)(furnace_status_on|(vent_3_desired_temp << 2)|vent_id_3);
+		  for(int i = 0; i < sizeof(data); i++){
+			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
+		  }
+		  HAL_Delay(5000);
+		  vent_3_curr_temp = vent_3_desired_temp;
 	  }
+
+//	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
+
+//	  if(pin_state){
+//		  for(int i = 0; i < sizeof(data); i++){
+//			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
+//		  }
+//		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
+//	  }
 
 	  for(int i = sizeof(received_data) - 1; i >= 0; i--){
 		  receive_status = HAL_UART_Receive(&huart4, &(received_data[i]), 1, 1000);
@@ -146,13 +179,13 @@ int main(void)
 //	  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
 
 
-	  if(received_data[0] == 31 && receive_status == HAL_OK){
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
-		  HAL_Delay(1000);
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-	  } else {
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
-	  }
+//	  if(received_data[0] == 31 && receive_status == HAL_OK){
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
+//		  HAL_Delay(1000);
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+//	  } else {
+//		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_RESET);
+//	  }
 
 //	  if(received_data[0] == 0x41){
 //		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7,  GPIO_PIN_SET);
