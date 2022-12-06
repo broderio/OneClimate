@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-uint8_t my_id = 1;
+uint8_t my_id = 2;
 uint8_t my_data = 0x42;
 /* USER CODE END PD */
 
@@ -160,6 +160,8 @@ int main(void) {
 		/* USER CODE BEGIN 3 */
 //		heat on + goal > higher than current => open vent
 //		air on + goal < than current => close vent
+//		float test = Curr_temp;
+//		get_temp();
 
 		uint8_t data[] = { (uint8_t) (Curr_temp) };
 		uint8_t received_data[received_data_size];
@@ -169,12 +171,15 @@ int main(void) {
 					1000);
 		}
 
-		if((((received_data[1] & receive_current_temp) >> 7) == 1) && ((received_data[1] & 0x03) == my_id)){
+		if((((received_data[0] & receive_current_temp) >> 7) == 1) && ((received_data[0] & 0x03) == my_id)){
 			data[0] = (uint8_t)Curr_temp;
 			transmit_status = HAL_UART_Transmit(&huart1, &(data[0]), 1, 1000);
-		} else if((((received_data[1] & send_desired_state) >> 7) == 0) && ((received_data[1] & 0x03) == my_id)){
+		} else if((((received_data[0] & send_desired_state) >> 7) == 0) && ((received_data[0] & 0x03) == my_id)){
 			Heat_on = (received_data[0] & 0x80) >> 7;
-			Set_temp = (received_data[0] & 124) >> 2;
+			Set_temp = ((received_data[0] & 124) >> 2) + 55;
+			uint8_t temp = Set_temp;
+			int k = 0;
+			k++;
 		}
 
 //		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);

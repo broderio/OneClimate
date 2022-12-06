@@ -70,7 +70,7 @@ static void MX_TIM3_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 uint8_t curr_temp[] = {0, 0, 0, 0};
-uint8_t desired_temp[] = {0, 0, 0, 0};
+uint8_t desired_temp[] = {0, 11, 11, 0};
 
 HAL_StatusTypeDef transmit_status;
 HAL_StatusTypeDef receive_status;
@@ -141,7 +141,7 @@ int main(void)
 
 	  for(uint8_t i = 1; i <= 3; i++){
 		  data[0] = send_desired_state;
-		  data[1] = (uint8_t)((furnace_status_on << 7)|(desired_temp[i] << 2)|vent_ids[i]);
+		  data[1] = (uint8_t)((furnace_status_off << 7)|(desired_temp[i] << 2)|vent_ids[i]);
 		  for(int j = 0; j < sizeof(data); j++){
 			  transmit_status = HAL_UART_Transmit(&huart4, &(data[j]), 1, 1000);
 		  }
