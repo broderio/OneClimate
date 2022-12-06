@@ -46,6 +46,8 @@ UART_HandleTypeDef huart4;
 
 SPI_HandleTypeDef hspi1;
 
+TIM_HandleTypeDef htim3;
+
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
@@ -60,6 +62,7 @@ static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_UART4_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -108,6 +111,7 @@ int main(void)
   MX_ADC1_Init();
   MX_SPI1_Init();
   MX_UART4_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   HAL_StatusTypeDef transmit_status;
   HAL_StatusTypeDef receive_status;
@@ -173,9 +177,9 @@ int main(void)
 //		  transmit_status = HAL_UART_Transmit(&huart4, data, sizeof(data), 100);
 //	  }
 
-	  for(int i = sizeof(received_data) - 1; i >= 0; i--){
-		  receive_status = HAL_UART_Receive(&huart4, &(received_data[i]), 1, 1000);
-	  }
+//	  for(int i = sizeof(received_data) - 1; i >= 0; i--){
+//		  receive_status = HAL_UART_Receive(&huart4, &(received_data[i]), 1, 1000);
+//	  }
 //	  receive_status = HAL_UART_Receive(&huart4, received_data, sizeof(received_data), 100);
 
 
@@ -467,6 +471,51 @@ static void MX_SPI1_Init(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 8399;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 49999;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+
+}
+
+/**
   * @brief USB_OTG_FS Initialization Function
   * @param None
   * @retval None
@@ -582,7 +631,20 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim == &htim3) {
+		for(uint8_t i = 0; i < 3; i++){
+			uint8_t data[] = {receive_current_temp|i, (uint8_t)(0)};
+			uint8_t received_data[1];
+		    for(int j = 0; j < sizeof(data); j++){
+			    transmit_status = HAL_UART_Transmit(&huart4, &(data[j]), 1, 1000);
+		    }
+			HAL_Delay(1000);
+			receive_status = HAL_UART_Receive(&huart4, &(received_data[0]), 1, 1000);
+		    vent_1_curr_temp = received_data[0];
+		}
+	}
+}
 /* USER CODE END 4 */
 
 /**
