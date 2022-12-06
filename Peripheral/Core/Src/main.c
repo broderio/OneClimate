@@ -173,14 +173,8 @@ int main(void) {
 			data[0] = (uint8_t)Curr_temp;
 			transmit_status = HAL_UART_Transmit(&huart1, &(data[0]), 1, 1000);
 		} else if((((received_data[1] & send_desired_state) >> 7) == 0) && ((received_data[1] & 0x03) == my_id)){
-			uint8_t heater_status = (received_data[0] & 0x80) >> 7;
+			Heat_on = (received_data[0] & 0x80) >> 7;
 			Set_temp = (received_data[0] & 124) >> 2;
-			if(Set_temp > Curr_temp && heater_status){
-				open_vent();
-			} else if(Set_temp < Curr_temp && !heater_status){
-				close_vent();
-			}
-			transmit_status = HAL_UART_Transmit(&huart1, &(data[0]), 1, 1000);
 		}
 
 //		GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);

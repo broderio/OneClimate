@@ -69,12 +69,24 @@ static void MX_TIM3_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t vent_1_curr_temp = 0;
-uint8_t vent_1_desired_temp = 0;
-uint8_t vent_2_curr_temp = 0;
-uint8_t vent_2_desired_temp = 0;
-uint8_t vent_3_curr_temp = 0;
-uint8_t vent_3_desired_temp = 0;
+uint8_t curr_temp[] = {0, 0, 0, 0};
+uint8_t desired_temp[] = {0, 0, 0, 0};
+
+HAL_StatusTypeDef transmit_status;
+HAL_StatusTypeDef receive_status;
+
+/* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
+ *							([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) */
+ uint8_t data_size = 2;
+ uint8_t received_data_size = 1;
+ uint8_t send_desired_state = 0x00;
+ uint8_t receive_current_temp = 0x80;
+ uint8_t furnace_status_on = 0x80;
+ uint8_t furnace_status_off = 0x00;
+ uint8_t vent_id_1 = 0x01;
+ uint8_t vent_id_2 = 0x02;
+ uint8_t vent_id_3 = 0x03;
+ uint8_t vent_ids[] = {0x00, 0x01, 0x02, 0x03};
 
 /* USER CODE END 0 */
 
@@ -113,20 +125,6 @@ int main(void)
   MX_UART4_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_StatusTypeDef transmit_status;
-  HAL_StatusTypeDef receive_status;
-
-  /* {0x00000000, 0x00000000} - ([0] => either 0 for desired state command, or a 1 for peripheral current_temp request command),
-   *							([1] => first bit is furnace status, next 5 are desired temp, last 2 are vent id) */
-   uint8_t data_size = 2;
-   uint8_t received_data_size = 1;
-   uint8_t send_desired_state = 0x00;
-   uint8_t receive_current_temp = 0x80;
-   uint8_t furnace_status_on = 0x80;
-   uint8_t furnace_status_off = 0x00;
-   uint8_t vent_id_1 = 0x01;
-   uint8_t vent_id_2 = 0x02;
-   uint8_t vent_id_3 = 0x03;
 
   /* USER CODE END 2 */
 
@@ -141,31 +139,13 @@ int main(void)
 	  uint8_t data[data_size];
 	  uint8_t received_data[received_data_size];
 
-
-	  if(vent_1_curr_temp != vent_1_desired_temp){
+	  for(uint8_t = 1; i <= 3; i++){
 		  data[0] = send_desired_state;
-		  data[1] = (uint8_t)(furnace_status_on|(vent_1_desired_temp << 2)|vent_id_1);
-		  for(int i = 0; i < sizeof(data); i++){
-			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
+		  data[1] = (uint8_t)((furnace_status_on << 7)|(desired_temp[i] << 2)|vent_ids[i]);
+		  for(int j = 0; j < sizeof(data); j++){
+			  transmit_status = HAL_UART_Transmit(&huart4, &(data[j]), 1, 1000);
 		  }
-		  HAL_Delay(5000);
-		  vent_1_curr_temp = vent_1_desired_temp;
-	  } else if (vent_2_curr_temp != vent_2_desired_temp){
-		  data[0] = send_desired_state;
-		  data[1] = (uint8_t)(furnace_status_on|(vent_2_desired_temp << 2)|vent_id_2);
-		  for(int i = 0; i < sizeof(data); i++){
-			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
-		  }
-		  HAL_Delay(5000);
-		  vent_2_curr_temp = vent_2_desired_temp;
-	  } else if(vent_3_curr_temp != vent_3_desired_temp){
-		  data[0] = send_desired_state;
-		  data[1] = (uint8_t)(furnace_status_on|(vent_3_desired_temp << 2)|vent_id_3);
-		  for(int i = 0; i < sizeof(data); i++){
-			  transmit_status = HAL_UART_Transmit(&huart4, &(data[i]), 1, 1000);
-		  }
-		  HAL_Delay(5000);
-		  vent_3_curr_temp = vent_3_desired_temp;
+		  HAL_Delay(1000);
 	  }
 
 //	  GPIO_PinState pin_state = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
@@ -634,14 +614,14 @@ static void MX_GPIO_Init(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
 		for(uint8_t i = 0; i < 3; i++){
-			uint8_t data[] = {receive_current_temp|i, (uint8_t)(0)};
+			uint8_t data[] = {receive_current_temp|vent_ids[i], (uint8_t)(0)};
 			uint8_t received_data[1];
 		    for(int j = 0; j < sizeof(data); j++){
 			    transmit_status = HAL_UART_Transmit(&huart4, &(data[j]), 1, 1000);
 		    }
 			HAL_Delay(1000);
 			receive_status = HAL_UART_Receive(&huart4, &(received_data[0]), 1, 1000);
-		    vent_1_curr_temp = received_data[0];
+		    curr_temp[i] = received_data[0];
 		}
 	}
 }
