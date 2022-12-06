@@ -24,7 +24,6 @@
 #include "LCD.h"
 #include "TS.h"
 #include <stdlib.h>
-#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -77,7 +76,8 @@ struct currRoomStatetate {
 	uint8_t id;
 }typedef roomState_t;
 
-uint8_t furnaceState = 0;
+uint8_t currFurnaceState = 0;
+uint8_t prevFurnaceState = 0;
 roomState_t prevRoomState[NUM_ROOMS];
 roomState_t currRoomState[NUM_ROOMS];
 
@@ -151,7 +151,7 @@ void updateDisplayTemp(SPI_HandleTypeDef *spi, int roomIdx) {
 
 void updateDisplayFurnace(SPI_HandleTypeDef *spi) {
 	int size = 6;
-	if (furnaceState) {
+	if (currFurnaceState) {
 		LCD_writePixels(spi, LCD_color565(255, 255, 255), size,
 		LCD_HEIGHT - 8 * 6 - 4, 23 * size, 2);
 		LCD_writePixels(&hspi1, LCD_color565(0, 0, 0), LCD_WIDTH - 18 * 6,
@@ -164,28 +164,28 @@ void updateDisplayFurnace(SPI_HandleTypeDef *spi) {
 	}
 }
 
-HAL_StatusTypeDef transmit_updated_state(uint8_t *data) {
+HAL_StatusTypeDef transmitUpdatedState(uint8_t *data) {
 	HAL_StatusTypeDef res = HAL_UART_Transmit(&huart4, data, 1, 100);
 	return res;
 }
 
-HAL_StatusTypeDef receive_acknowledge(uint8_t *received_data) {
+HAL_StatusTypeDef receiveAcknowledge(uint8_t *received_data) {
 	HAL_StatusTypeDef res = HAL_UART_Receive(&huart4, received_data, 1, 100);
 	return res;
 }
 
-void transmit_room_info(uint8_t *received_data, uint8_t roomIdx) {
-	while (receive_acknowledge(received_data) != HAL_OK) {
+void transmitRoomInfo(uint8_t roomIdx, uint8_t *data_in) {
+	while (receiveAcknowledge(data_in) != HAL_OK) {
 		uint8_t lower_temp = ((currRoomState[roomIdx].goal & 0x0F) << 4) | currRoomState[roomIdx].id;
-		transmit_updated_state(&lower_temp);
+		transmitUpdatedState(&lower_temp);
 	}
-	while (receive_acknowledge(received_data) != HAL_OK) {
+	while (receiveAcknowledge(data_in) != HAL_OK) {
 		uint8_t upper_temp = (currRoomState[roomIdx].goal & 0xF0) | currRoomState[roomIdx].id;
-		transmit_updated_state(&upper_temp);
+		transmitUpdatedState(&upper_temp);
 	}
-	while (receive_acknowledge(received_data) != HAL_OK) {
-		uint8_t furnace = (furnaceState << 5) | currRoomState[roomIdx].id;
-		transmit_updated_state(&furnace);
+	while (receiveAcknowledge(data_in) != HAL_OK) {
+		uint8_t furnace = (currFurnaceState << 5) | currRoomState[roomIdx].id;
+		transmitUpdatedState(&furnace);
 	}
 }
 
@@ -259,44 +259,33 @@ int main(void) {
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-		uint8_t received_data[1];
-
 		z = TS_readPressure(&hadc1);
 		x = TS_readX(&hadc1);
 		y = TS_readY(&hadc1);
 
 		if (z < 1000) {
-			transform(x, y, &X, &Y);
-			int newGoal1 = 0, newGoal2 = 0, newGoal3 = 0, newFurnace = 0;
+			TS_transform(x, y, &X, &Y);
 			if (X > COL_1 - ERROR && X < COL_1 + ERROR) {
 				if (Y > ROW_1 - ERROR && Y < ROW_1 + ERROR) {
 					currRoomState[0].goal += 1;
-					newGoal1 = 1;
 				} else if (Y > ROW_2 - ERROR && Y < ROW_2 + ERROR) {
 					currRoomState[0].goal -= 1;
-					newGoal1 = 1;
 				} else if (Y > ROW_3 - ERROR && Y < ROW_3 + ERROR) {
-					furnaceState = 0;
-					newFurnace = 1;
+					currFurnaceState = 0;
 				}
 			} else if (X > COL_2 - ERROR && X < COL_2 + ERROR) {
 				if (Y > ROW_1 - ERROR && Y < ROW_1 + ERROR) {
 					currRoomState[1].goal += 1;
-					newGoal2 = 1;
 				} else if (Y > ROW_2 - ERROR && Y < ROW_2 + ERROR) {
 					currRoomState[1].goal -= 1;
-					newGoal2 = 1;
 				}
 			} else if (X > COL_3 - ERROR && X < COL_3 + ERROR) {
 				if (Y > ROW_1 - ERROR && Y < ROW_1 + ERROR) {
 					currRoomState[2].goal += 1;
-					newGoal3 = 1;
 				} else if (Y > ROW_2 - ERROR && Y < ROW_2 + ERROR) {
 					currRoomState[2].goal -= 1;
-					newGoal3 = 1;
 				} else if (Y > ROW_3 - ERROR && Y < ROW_3 + ERROR) {
-					furnaceState = 1;
-					newFurnace = 1;
+					currFurnaceState = 1;
 				}
 			}
 
@@ -308,22 +297,19 @@ int main(void) {
 				currRoomState[i].temp = (currRoomState[i].temp > 0) ? currRoomState[i].temp : 0;
 			}
 
-			if (newGoal1) {
-				transmit_room_info(received_data, 0);
+			if (currRoomState[0].goal != prevRoomState[0].goal) {
 				updateDisplayTemp(&hspi1, 0);
 			}
-			if (newGoal2) {
-				transmit_room_info(received_data, 1);
+
+			if (currRoomState[1].goal != prevRoomState[1].goal) {
 				updateDisplayTemp(&hspi1, 1);
 			}
-			if (newGoal3) {
-				transmit_room_info(received_data, 2);
+
+			if (currRoomState[2].goal != prevRoomState[2].goal) {
 				updateDisplayTemp(&hspi1, 2);
 			}
-			if (newFurnace) {
-				transmit_room_info(received_data, 0);
-				transmit_room_info(received_data, 1);
-				transmit_room_info(received_data, 2);
+
+			if (currFurnaceState != prevFurnaceState) {
 				updateDisplayFurnace(&hspi1);
 			}
 		}
@@ -723,27 +709,24 @@ static void MX_GPIO_Init(void) {
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) {
-		uint8_t received_data[1];
+		transmitRoomInfo(0, &currRoomState[0].temp);
+		transmitRoomInfo(1, &currRoomState[1].temp);
+		transmitRoomInfo(2, &currRoomState[2].temp);
 
-		transmit_room_info(received_data, 0);
-		currRoomState[0].temp = received_data[0];
-		transmit_room_info(received_data, 1);
-		currRoomState[1].temp = received_data[0];
-		transmit_room_info(received_data, 2);
-		currRoomState[2].temp = received_data[0];
+		if (currRoomState[0].temp != prevRoomState[0].temp) {
+			updateDisplayTemp(&hspi1, 0);
+			prevRoomState[0].temp = currRoomState[0].temp;
+		}
 
-	//			while (receive_acknowledge(received_data) != HAL_OK) {
-	//				transmit_updated_state(1);
-	//			}
-	//			currRoomState[0].currTemp = received_data[0];
-	//			while (receive_acknowledge(received_data) != HAL_OK) {
-	//				transmit_updated_state(2);
-	//			}
-	//			currRoomState[1].currTemp = received_data[0];
-	//			while (receive_acknowledge(received_data) != HAL_OK) {
-	//				transmit_updated_state(3);
-	//			}
-	//			currRoomState[2].currTemp = received_data[0];
+		if (currRoomState[1].temp != prevRoomState[1].temp) {
+			updateDisplayTemp(&hspi1, 1);
+			prevRoomState[1].temp = currRoomState[1].temp;
+		}
+
+		if (currRoomState[2].temp != prevRoomState[2].temp) {
+			updateDisplayTemp(&hspi1, 2);
+			prevRoomState[2].temp = currRoomState[2].temp;
+		}
 	}
 }
 /* USER CODE END 4 */

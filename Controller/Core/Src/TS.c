@@ -14,7 +14,7 @@ int map(int x, int in_min, int in_max, int out_min, int out_max)
    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-void transform(double x, double y, double* x_out, double* y_out)
+void TS_transform(double x, double y, double* x_out, double* y_out)
 {
 	*x_out = X_A * x + X_B * y + X_C;
 	*y_out = Y_A * x + Y_B * y + Y_C;

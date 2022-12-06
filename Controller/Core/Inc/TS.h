@@ -40,6 +40,6 @@ void ADC_Select(ADC_HandleTypeDef *hadc, uint32_t channel, GPIO_TypeDef* port, u
 double TS_readX(ADC_HandleTypeDef *hadc);
 double TS_readY(ADC_HandleTypeDef *hadc);
 double TS_readPressure(ADC_HandleTypeDef *hadc);
-void transform(double x, double y, double* x_out, double* y_out);
+void TS_transform(double x, double y, double* x_out, double* y_out);
 
 #endif /* INC_TS_H_ */
