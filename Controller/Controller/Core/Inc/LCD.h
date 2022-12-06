@@ -1,0 +1,139 @@
+/*
+ * LCD.h
+ *
+ *  Created on: Nov 25, 2022
+ *      Author: broderio
+ */
+
+#ifndef INC_LCD_H_
+#define INC_LCD_H_
+
+#include "stm32l4xx_hal.h"
+
+#define HX8357_TFTWIDTH 320  ///< 320 pixels wide
+#define HX8357_TFTHEIGHT 480 ///< 480 pixels tall
+
+#define LCD_WIDTH 320  ///< 320 pixels wide
+#define LCD_HEIGHT 480 ///< 480 pixels tall
+
+#define HX8357_NOP 0x00     ///< No op
+#define HX8357_SWRESET 0x01 ///< software reset
+#define HX8357_RDDID 0x04   ///< Read ID
+
+#define HX8357_RDPOWMODE 0x0A ///< Read power mode Read power mode
+#define HX8357_RDMADCTL 0x0B  ///< Read MADCTL
+#define HX8357_RDCOLMOD 0x0C  ///< Column entry mode
+#define HX8357_RDDIM 0x0D     ///< Read display image mode
+#define HX8357_RDDSDR 0x0F    ///< Read dosplay signal mode
+
+#define HX8357_SLPIN 0x10  ///< Enter sleep mode
+#define HX8357_SLPOUT 0x11 ///< Exit sleep mode
+#define HX8357B_PTLON 0x12 ///< Partial mode on
+#define HX8357B_NORON 0x13 ///< Normal mode
+
+#define HX8357_INVOFF 0x20  ///< Turn off invert
+#define HX8357_INVON 0x21   ///< Turn on invert
+#define HX8357_DISPOFF 0x28 ///< Display on
+#define HX8357_DISPON 0x29  ///< Display off
+
+#define HX8357_CASET 0x2A ///< Column addr set
+#define HX8357_PASET 0x2B ///< Page addr set
+#define HX8357_RAMWR 0x2C ///< Write VRAM
+#define HX8357_RAMRD 0x2E ///< Read VRAm
+
+#define HX8357B_PTLAR 0x30   ///< (unknown)
+#define HX8357_TEON 0x35     ///< Tear enable on
+#define HX8357_TEARLINE 0x44 ///< (unknown)
+#define HX8357_MADCTL 0x36   ///< Memory access control
+#define HX8357_COLMOD 0x3A   ///< Color mode
+
+#define HX8357_SETOSC 0xB0      ///< Set oscillator
+#define HX8357_SETPWR1 0xB1     ///< Set power control
+#define HX8357B_SETDISPLAY 0xB2 ///< Set display mode
+#define HX8357_SETRGB 0xB3      ///< Set RGB interface
+#define HX8357D_SETCOM 0xB6     ///< Set VCOM voltage
+
+#define HX8357B_SETDISPMODE 0xB4 ///< Set display mode
+#define HX8357D_SETCYC 0xB4      ///< Set display cycle reg
+#define HX8357B_SETOTP 0xB7      ///< Set OTP memory
+#define HX8357D_SETC 0xB9        ///< Enable extension command
+
+#define HX8357B_SET_PANEL_DRIVING 0xC0 ///< Set panel drive mode
+#define HX8357D_SETSTBA 0xC0           ///< Set source option
+#define HX8357B_SETDGC 0xC1            ///< Set DGC settings
+#define HX8357B_SETID 0xC3             ///< Set ID
+#define HX8357B_SETDDB 0xC4            ///< Set DDB
+#define HX8357B_SETDISPLAYFRAME 0xC5   ///< Set display frame
+#define HX8357B_GAMMASET 0xC8          ///< Set Gamma correction
+#define HX8357B_SETCABC 0xC9           ///< Set CABC
+#define HX8357_SETPANEL 0xCC           ///< Set Panel
+
+#define HX8357B_SETPOWER 0xD0     ///< Set power control
+#define HX8357B_SETVCOM 0xD1      ///< Set VCOM
+#define HX8357B_SETPWRNORMAL 0xD2 ///< Set power normal
+
+#define HX8357B_RDID1 0xDA ///< Read ID #1
+#define HX8357B_RDID2 0xDB ///< Read ID #2
+#define HX8357B_RDID3 0xDC ///< Read ID #3
+#define HX8357B_RDID4 0xDD ///< Read ID #4
+
+#define HX8357D_SETGAMMA 0xE0 ///< Set Gamma
+
+#define HX8357B_SETGAMMA 0xC8        ///< Set Gamma
+#define HX8357B_SETPANELRELATED 0xE9 ///< Set panel related
+
+// Color definitions
+#define HX8357_BLACK 0x0000   ///< BLACK color for drawing graphics
+#define HX8357_BLUE 0x001F    ///< BLUE color for drawing graphics
+#define HX8357_RED 0xF800     ///< RED color for drawing graphics
+#define HX8357_GREEN 0x07E0   ///< GREEN color for drawing graphics
+#define HX8357_CYAN 0x07FF    ///< CYAN color for drawing graphics
+#define HX8357_MAGENTA 0xF81F ///< MAGENTA color for drawing graphics
+#define HX8357_YELLOW 0xFFE0  ///< YELLOW color for drawing graphics
+#define HX8357_WHITE 0xFFFF   ///< WHITE color for drawing graphics
+
+// Control definitions
+#define MADCTL_MY 0x80  ///< Bottom to top
+#define MADCTL_MX 0x40  ///< Right to left
+#define MADCTL_MV 0x20  ///< Reverse Mode
+#define MADCTL_ML 0x10  ///< LCD refresh Bottom to top
+#define MADCTL_RGB 0x00 ///< Red-Green-Blue pixel order
+#define MADCTL_BGR 0x08 ///< Blue-Green-Red pixel order
+#define MADCTL_MH 0x04  ///< LCD refresh right to left
+
+// Pin definitions
+#define DC_PORT GPIOF
+#define DC_PIN GPIO_PIN_12
+#define CS_PORT GPIOF
+#define CS_PIN GPIO_PIN_13
+#define RST_PORT GPIOF
+#define RST_PIN GPIO_PIN_14
+
+void uint16_to_bytes(uint16_t in, uint8_t *out);
+void uint16a_to_bytes(uint16_t* in, uint8_t *out, uint32_t len);
+void int16_to_bytes(int16_t in, uint8_t *out);
+void uint32_to_bytes(uint32_t in, uint8_t *out);
+void int32_to_bytes(int32_t in, uint8_t *out);
+void LCD_reset();
+HAL_StatusTypeDef LCD_writeCommand(SPI_HandleTypeDef* spi, uint8_t cmd);
+void LCD_startWrite();
+void LCD_endWrite();
+int LCD_begin(SPI_HandleTypeDef* spi);
+int invertDisplay(SPI_HandleTypeDef* spi, int invert);
+int LCD_setAddrWindow(SPI_HandleTypeDef* spi, uint16_t x1, uint16_t y1, uint16_t w, uint16_t h);
+uint16_t LCD_color565(uint8_t red, uint8_t green, uint8_t blue);
+int LCD_pushColor(SPI_HandleTypeDef* spi, uint16_t color);
+int LCD_pushColorCopy(SPI_HandleTypeDef* spi, uint16_t color, uint32_t count);
+int LCD_writePixel(SPI_HandleTypeDef* spi, int16_t x, int16_t y, uint16_t color);
+int LCD_writePixels(SPI_HandleTypeDef* spi, uint16_t color, int16_t x, int16_t y, int16_t w, int16_t h);
+uint16_t LCD_readPixel(SPI_HandleTypeDef* spi, int16_t x, int16_t y);
+void LCD_drawChar(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char c, uint16_t color, uint32_t size);
+void LCD_drawString(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char* c, uint32_t length, uint16_t color, uint32_t size);
+void LCD_drawButton(SPI_HandleTypeDef* spi, int16_t x, int16_t y, int button, uint16_t color, uint32_t size);
+void LCD_drawCharNoBG(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char c, uint16_t color, uint32_t size);
+void LCD_drawStringNoBG(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char* c, uint32_t length, uint16_t color, uint32_t size);
+void LCD_drawCharOPT(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char c1, unsigned char c2, uint16_t color, uint32_t size);
+void LCD_drawStringOPT(SPI_HandleTypeDef* spi, int16_t x, int16_t y, unsigned char* c1, unsigned char* c2, uint32_t length, uint16_t color, uint32_t size);
+
+
+#endif /* INC_LCD_H_ */
